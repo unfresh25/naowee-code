@@ -34,7 +34,7 @@ On Windows, in PowerShell:
 irm https://t3.codes/install.ps1 | iex
 ```
 
-Then run `t3` to start the server and open the local web app. `t3 service install` keeps it running in the background, `t3 update` moves to a newer release, and `t3 --help` has the full reference.
+Then run `naowee` to start the server and open the local web app. `naowee service install` keeps it running in the background, `naowee update` moves to a newer release, and `naowee --help` has the full reference.
 
 To try it once without installing, run `npx t3@latest` instead.
 

@@ -42,7 +42,7 @@ function recoveryHint(error: RelayProtectedError): string {
     case "RelayEnvironmentLinkLimitExceededError":
       return "Unlink an unused environment in T3 Connect, then restart Naowee Code on this machine.";
     case "RelayAuthInvalidError":
-      return "Run `t3 connect login` to check this machine's authorization. If the stored credential was revoked, sign out with `t3 connect logout`, then run `t3 connect` again. Restart Naowee Code after signing in.";
+      return "Run `naowee connect login` to check this machine's authorization. If the stored credential was revoked, sign out with `naowee connect logout`, then run `naowee connect` again. Restart Naowee Code after signing in.";
     case "RelayEnvironmentLinkProofExpiredError":
     case "RelayEnvironmentLinkProofInvalidError":
       return "Check this machine's date and time, update Naowee Code, then restart it.";
