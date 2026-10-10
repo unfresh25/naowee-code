@@ -184,7 +184,7 @@ describe("OpenCode2Server passwords", () => {
     }).pipe(Effect.provide(NodeServices.layer)),
   );
 
-  it("hands the spawned server only the T3 password", () => {
+  it("hands the spawned server only the Naowee password", () => {
     const password = Redacted.make("t3-generated");
     const environment = OpenCode2Server.serverEnvironment(
       { PATH: "/bin", OPENCODE_SERVER_PASSWORD: "ambient", OPENCODE_PASSWORD: "ambient" },

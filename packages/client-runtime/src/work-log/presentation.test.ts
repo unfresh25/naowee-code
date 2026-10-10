@@ -270,7 +270,7 @@ describe("summarizeToolGroup", () => {
 });
 
 describe("resolveWorkEntryToolPresentation", () => {
-  it("presents and summarizes every T3 tool using the same structured identity", () => {
+  it("presents and summarizes every Naowee tool using the same structured identity", () => {
     for (const tool of T3_MCP_TOOL_NAMES) {
       const entry: WorkLogPresentationEntry = {
         id: tool,
@@ -280,13 +280,13 @@ describe("resolveWorkEntryToolPresentation", () => {
         toolData: { server: "t3-code", tool },
         toolLifecycleStatus: "completed",
         itemType: "dynamic_tool",
-        toolSource: { key: "t3-code", name: "T3 Code", kind: "integration" },
+        toolSource: { key: "t3-code", name: "Naowee Code", kind: "integration" },
       };
       const presentation = resolveWorkEntryToolPresentation(entry);
       expect(presentation, tool).not.toBeNull();
       expect(presentation?.displayName, tool).not.toContain(tool);
       const summary = summarizeToolGroup([entry]);
-      expect(summary.summary, tool).not.toMatch(/Used (?:1 tool|T3 Code integration)/);
+      expect(summary.summary, tool).not.toMatch(/Used (?:1 tool|Naowee Code integration)/);
       expect(summary.hasFailure, tool).toBe(false);
       const failed = { ...entry, toolLifecycleStatus: "failed" as const };
       expect(resolveWorkEntryToolPresentation(failed)?.displayName, tool).toMatch(/^Failed to /);
@@ -350,7 +350,7 @@ describe("resolveWorkEntryToolPresentation", () => {
     });
   });
 
-  it("does not summarize a foreign structured identity as T3 work", () => {
+  it("does not summarize a foreign structured identity as Naowee work", () => {
     const entry: WorkLogPresentationEntry = {
       id: "foreign",
       createdAt: "2026-09-19T00:00:00.000Z",
@@ -475,8 +475,8 @@ describe("resolveWorkEntryToolPresentation", () => {
       "Stopping recording the preview browser",
       "Stopped recording the preview browser",
     ],
-    ["t3_thread_read", "Reading a T3 thread", "Read a T3 thread"],
-    ["t3_thread_send", "Sending to a T3 thread", "Sent to a T3 thread"],
+    ["t3_thread_read", "Reading a Naowee thread", "Read a Naowee thread"],
+    ["t3_thread_send", "Sending to a Naowee thread", "Sent to a Naowee thread"],
     [
       "t3_worktree_handoff",
       "Handing off thread to a git worktree",
@@ -493,7 +493,7 @@ describe("resolveWorkEntryToolPresentation", () => {
     ).toBe(completed);
   });
 
-  it("keeps T3 branding for non-browser tools and falls back to the original tool label", () => {
+  it("keeps Naowee branding for non-browser tools and falls back to the original tool label", () => {
     expect(
       resolveWorkEntryToolPresentation({
         label: "mcp__t3_code__task_status",
@@ -883,7 +883,7 @@ describe("pull request tool presentation", () => {
       tone: "tool",
       itemType: "dynamic_tool",
       toolLifecycleStatus: "completed",
-      toolSource: { key: "t3-code", name: "T3 Code", kind: "integration" },
+      toolSource: { key: "t3-code", name: "Naowee Code", kind: "integration" },
     };
     const list: WorkLogPresentationEntry = {
       ...link,
@@ -950,7 +950,7 @@ describe("device group summaries", () => {
     expect(workEntryViewedImagePath(entry)).toBe("/workspace/device.png");
   });
 
-  it("does not classify another server's tools as T3 device controls", () => {
+  it("does not classify another server's tools as Naowee device controls", () => {
     expect(
       summarizeToolGroup([
         {

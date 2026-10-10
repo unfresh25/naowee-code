@@ -295,6 +295,20 @@ export function parseAgentSessionTranscript(
   return parseAgentSessionRecords(input, records);
 }
 
+const LEADING_CONTEXT_BLOCK = /^\s*<([A-Za-z][\w-]*)>[\s\S]*?<\/\1>/;
+
+function titleFromUserText(text: string): string {
+  let rest = text;
+  for (
+    let block = LEADING_CONTEXT_BLOCK.exec(rest);
+    block !== null;
+    block = LEADING_CONTEXT_BLOCK.exec(rest)
+  ) {
+    rest = rest.slice(block[0].length);
+  }
+  return rest.trim().split("\n")[0]?.slice(0, 100).trim() ?? "";
+}
+
 function parseAgentSessionRecords(
   input: AgentSessionTranscriptMetadata,
   records: ReadonlyArray<DecodedTranscriptRecord>,
@@ -310,6 +324,7 @@ function parseAgentSessionRecords(
   let firstUserMessage:
     | (AgentSessionThreadMessage & { readonly codexResponseUser: boolean })
     | undefined;
+  let derivedTitle = "";
   // A Codex response item can include generated setup text beside the real
   // prompt. Suppress response-user records only when the shared turn ID and a
   // verbatim event copy prove which prompt the user submitted.
@@ -371,6 +386,9 @@ function parseAgentSessionRecords(
   ) => {
     if (firstUserMessage === undefined && message.role === "user") {
       firstUserMessage = message;
+    }
+    if (derivedTitle === "" && message.role === "user") {
+      derivedTitle = titleFromUserText(message.text);
     }
     messages.push(message);
     if (messages.length > MAX_IMPORTED_MESSAGES) messages.shift();
@@ -492,13 +510,12 @@ function parseAgentSessionRecords(
   const retainedMessages = firstUserMessageRetained
     ? visibleMessages
     : [visibleFirstUserMessage, ...visibleMessages.slice(-(MAX_IMPORTED_MESSAGES - 1))];
-  const derivedTitle = visibleFirstUserMessage.text.trim().split("\n")[0]?.slice(0, 100).trim();
 
   return {
     source: input.source,
     providerInstanceId: input.providerInstanceId,
     providerSessionId,
-    title: title ?? (derivedTitle && derivedTitle.length > 0 ? derivedTitle : "Imported thread"),
+    title: title ?? (derivedTitle.length > 0 ? derivedTitle : "Imported thread"),
     model,
     createdAt: retainedMessages[0]?.createdAt ?? fallbackTimestamp,
     updatedAt: fallbackTimestamp,
@@ -536,7 +553,7 @@ function shouldRetainDecodedRecord(
 }
 
 /**
- * T3 Code runs its own agent sessions inside disposable worktrees. Their
+ * Naowee Code runs its own agent sessions inside disposable worktrees. Their
  * transcripts look exactly like user sessions, but re-importing the app's own
  * sandboxes as projects is never right. Matches this server's configured
  * worktrees directory plus the conventional `.t3/worktrees` layout, which

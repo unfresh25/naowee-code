@@ -478,7 +478,7 @@ describe("theme files", () => {
     });
   });
 
-  it("keeps the T3 Chat palette faithful and readable", () => {
+  it("keeps the Naowee Chat palette faithful and readable", () => {
     expectThemeColors(T3_CHAT_THEME.colors, {
       canvas: "#fdf7fd",
       chrome: "#fdf7fd",
@@ -1085,7 +1085,7 @@ describe("stored theme preferences", () => {
     }
   });
 
-  it("resolves the legacy t3-chat-dark preference to dark T3 Chat", () => {
+  it("resolves the legacy t3-chat-dark preference to dark Naowee Chat", () => {
     expect(getThemeDefinition("t3-chat-dark")).toBe(T3_CHAT_THEME);
     expect(getThemePreferenceMode("t3-chat-dark")).toBe("dark");
     expect(resolveThemeAppearance("t3-chat-dark", true, false)).toBe("dark");

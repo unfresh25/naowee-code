@@ -590,8 +590,8 @@ describe("ClientSettings environment identification", () => {
 });
 
 describe("ClientSettings sidebar", () => {
-  it("defaults to the current sidebar", () => {
-    expect(decodeClientSettings({}).legacySidebarEnabled).toBe(false);
+  it("defaults to the legacy per-project sidebar", () => {
+    expect(decodeClientSettings({}).legacySidebarEnabled).toBe(true);
   });
 
   it("drops the retired sidebar v2 beta keys, resetting everyone to the default", () => {
@@ -599,7 +599,7 @@ describe("ClientSettings sidebar", () => {
       sidebarV2Enabled: false,
       sidebarV2ConfiguredByUser: true,
     });
-    expect(decoded.legacySidebarEnabled).toBe(false);
+    expect(decoded.legacySidebarEnabled).toBe(true);
     expect(decoded).not.toHaveProperty("sidebarV2Enabled");
     expect(decoded).not.toHaveProperty("sidebarV2ConfiguredByUser");
   });
@@ -612,10 +612,10 @@ describe("ClientSettings sidebar", () => {
     expect(decodeClientSettingsPatch(stored)).toEqual({});
   });
 
-  it("preserves an explicit legacy sidebar opt-in", () => {
-    expect(decodeClientSettings({ legacySidebarEnabled: true }).legacySidebarEnabled).toBe(true);
-    expect(decodeClientSettingsPatch({ legacySidebarEnabled: true }).legacySidebarEnabled).toBe(
-      true,
+  it("preserves an explicit opt-out of the legacy sidebar", () => {
+    expect(decodeClientSettings({ legacySidebarEnabled: false }).legacySidebarEnabled).toBe(false);
+    expect(decodeClientSettingsPatch({ legacySidebarEnabled: false }).legacySidebarEnabled).toBe(
+      false,
     );
   });
 
@@ -627,14 +627,21 @@ describe("ClientSettings sidebar", () => {
 });
 
 describe("ClientSettings context window meter", () => {
-  it("defaults off and preserves an explicit legacy opt-in", () => {
-    expect(decodeClientSettings({}).contextWindowMeterEnabled).toBe(false);
+  it("defaults on and preserves an explicit opt-out", () => {
+    expect(decodeClientSettings({}).contextWindowMeterEnabled).toBe(true);
     expect(
-      decodeClientSettings({ contextWindowMeterEnabled: true }).contextWindowMeterEnabled,
-    ).toBe(true);
+      decodeClientSettings({ contextWindowMeterEnabled: false }).contextWindowMeterEnabled,
+    ).toBe(false);
     expect(
-      decodeClientSettingsPatch({ contextWindowMeterEnabled: true }).contextWindowMeterEnabled,
-    ).toBe(true);
+      decodeClientSettingsPatch({ contextWindowMeterEnabled: false }).contextWindowMeterEnabled,
+    ).toBe(false);
+  });
+});
+
+describe("ClientSettings plan mode", () => {
+  it("defaults on and preserves an explicit opt-out", () => {
+    expect(decodeClientSettings({}).planModeEnabled).toBe(true);
+    expect(decodeClientSettings({ planModeEnabled: false }).planModeEnabled).toBe(false);
   });
 });
 

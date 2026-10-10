@@ -75,6 +75,7 @@ import {
   useCallback,
   useContext,
   useEffect,
+  useEffectEvent,
   useLayoutEffect,
   useMemo,
   useRef,
@@ -1645,12 +1646,45 @@ const ConversationTimeline = memo(function ConversationTimeline({
   );
 });
 
+const HISTORY_AUTO_LOAD_MARGIN_PX = 800;
+
 function TimelineHistoryControl(props: MessagesTimelineHistoryControls) {
+  const controlRef = useRef<HTMLDivElement | null>(null);
+  const inReachRef = useRef(false);
+  const canAutoLoad = props.hasMoreHistory && !props.loading && props.error === null;
+  const loadIfInReach = useEffectEvent(() => {
+    if (canAutoLoad && inReachRef.current) props.onLoadEarlier();
+  });
+
+  useEffect(() => {
+    const control = controlRef.current;
+    if (control === null || !props.hasMoreHistory) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        inReachRef.current = entry?.isIntersecting ?? false;
+        loadIfInReach();
+      },
+      {
+        root: control.closest(".messages-timeline-scroll"),
+        rootMargin: `${HISTORY_AUTO_LOAD_MARGIN_PX}px 0px 0px 0px`,
+      },
+    );
+    observer.observe(control);
+    return () => {
+      observer.disconnect();
+      inReachRef.current = false;
+    };
+  }, [props.hasMoreHistory]);
+
+  useEffect(() => {
+    if (canAutoLoad) loadIfInReach();
+  }, [canAutoLoad]);
+
   if (!props.hasMoreHistory && props.error === null) {
     return null;
   }
   return (
-    <div className="messages-timeline-row-frame">
+    <div ref={controlRef} className="messages-timeline-row-frame">
       <div className="chat-content-lane flex flex-col gap-1.5 pb-2">
         {props.hasMoreHistory ? (
           <button
@@ -2749,7 +2783,7 @@ function AssistantTimelineRow({ row }: { row: Extract<TimelineRow, { kind: "mess
   return (
     <>
       <div className="relative min-w-0 px-1 py-0.5">
-        <MessageAuthorHeading>T3 Code</MessageAuthorHeading>
+        <MessageAuthorHeading>Naowee Code</MessageAuthorHeading>
         <div data-thread-find-text="true">
           <AssistantCitationSource
             messageId={row.message.id}

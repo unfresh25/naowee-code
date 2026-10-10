@@ -393,7 +393,7 @@ describe("CodexAdapterV2 assistant message streaming", () => {
 });
 
 describe("CodexAdapterV2 runtime policy", () => {
-  it.effect("derives concrete Codex turn policies from every T3 runtime mode", () =>
+  it.effect("derives concrete Codex turn policies from every Naowee runtime mode", () =>
     Effect.gen(function* () {
       const build = (
         runtimeMode: "approval-required" | "auto-accept-edits" | "auto" | "full-access",
@@ -489,7 +489,7 @@ describe("CodexAdapterV2 runtime policy", () => {
     }),
   );
 
-  it.effect("adds default-mode developer instructions when the T3 MCP server is attached", () =>
+  it.effect("adds default-mode developer instructions when the Naowee MCP server is attached", () =>
     Effect.gen(function* () {
       const params = yield* CodexAdapterV2.buildCodexTurnStartParams({
         nativeThreadId: "native-orchestration-instructions",
@@ -518,7 +518,7 @@ describe("CodexAdapterV2 runtime policy", () => {
     }),
   );
 
-  it.effect("omits default-mode collaboration settings without the T3 MCP server", () =>
+  it.effect("omits default-mode collaboration settings without the Naowee MCP server", () =>
     Effect.gen(function* () {
       const params = yield* CodexAdapterV2.buildCodexTurnStartParams({
         nativeThreadId: "native-default-without-t3-mcp",
@@ -539,33 +539,35 @@ describe("CodexAdapterV2 runtime policy", () => {
     }),
   );
 
-  it.effect("adds T3 plan-mode developer instructions when the T3 MCP server is attached", () =>
-    Effect.gen(function* () {
-      const params = yield* CodexAdapterV2.buildCodexTurnStartParams({
-        nativeThreadId: "native-plan-with-t3-mcp",
-        codexInput: [{ type: "text", text: "plan this task" }],
-        runtimePolicy: {
-          runtimeMode: "full-access",
-          interactionMode: "plan",
-          cwd: null,
-        },
-        modelSelection: {
-          instanceId: ProviderInstanceId.make("codex"),
-          model: "gpt-5.4",
-        },
-        hasT3Mcp: true,
-      });
+  it.effect(
+    "adds Naowee plan-mode developer instructions when the Naowee MCP server is attached",
+    () =>
+      Effect.gen(function* () {
+        const params = yield* CodexAdapterV2.buildCodexTurnStartParams({
+          nativeThreadId: "native-plan-with-t3-mcp",
+          codexInput: [{ type: "text", text: "plan this task" }],
+          runtimePolicy: {
+            runtimeMode: "full-access",
+            interactionMode: "plan",
+            cwd: null,
+          },
+          modelSelection: {
+            instanceId: ProviderInstanceId.make("codex"),
+            model: "gpt-5.4",
+          },
+          hasT3Mcp: true,
+        });
 
-      assert.equal(params.collaborationMode?.mode, "plan");
-      assert.include(
-        params.collaborationMode?.settings.developer_instructions ?? "",
-        "request_user_input",
-      );
-      assert.include(params.additionalContext?.t3_code_tools?.value ?? "", "preview_status");
-    }),
+        assert.equal(params.collaborationMode?.mode, "plan");
+        assert.include(
+          params.collaborationMode?.settings.developer_instructions ?? "",
+          "request_user_input",
+        );
+        assert.include(params.additionalContext?.t3_code_tools?.value ?? "", "preview_status");
+      }),
   );
 
-  it.effect("keeps Codex in plan mode without referencing unavailable T3 MCP tools", () =>
+  it.effect("keeps Codex in plan mode without referencing unavailable Naowee MCP tools", () =>
     Effect.gen(function* () {
       const params = yield* CodexAdapterV2.buildCodexTurnStartParams({
         nativeThreadId: "native-plan-without-t3-mcp",
@@ -2735,7 +2737,7 @@ describe("CodexAdapterV2 post-settle continuation", () => {
     ),
   );
 
-  it.effect("preserves T3 context on the wire and restores it after compaction", () =>
+  it.effect("preserves Naowee context on the wire and restores it after compaction", () =>
     Effect.scoped(
       Effect.gen(function* () {
         const nativeThreadId = "context-thread";

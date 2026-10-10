@@ -334,7 +334,7 @@ export const RelayEnvironmentLinkRequest = Schema.Struct({
   notificationsEnabled: Schema.Boolean,
   liveActivitiesEnabled: Schema.Boolean,
   managedTunnelsEnabled: Schema.Boolean,
-}).annotate({ description: "Links an authenticated cloud user to a T3 environment." });
+}).annotate({ description: "Links an authenticated cloud user to a Naowee environment." });
 export type RelayEnvironmentLinkRequest = typeof RelayEnvironmentLinkRequest.Type;
 
 export const RelayEnvironmentLinkResponse = Schema.Struct({
@@ -826,7 +826,7 @@ export type RelayEnvironmentStatusValue = typeof RelayEnvironmentStatusValue.Typ
 /**
  * Why an environment is offline, when the relay knows more than "the host
  * did not answer". `tunnel_released`: the relay deleted the environment's
- * idle tunnel, and the host needs a current T3 Code build to get a new one.
+ * idle tunnel, and the host needs a current Naowee Code build to get a new one.
  */
 const RelayEnvironmentOfflineReason = Schema.Literals(["tunnel_released"]);
 type RelayEnvironmentOfflineReason = typeof RelayEnvironmentOfflineReason.Type;
@@ -1264,10 +1264,10 @@ export const RelayApi = HttpApi.make("RelayApi")
     RelayServerGroup,
     RelayHooksGroup,
   )
-  .annotate(OpenApi.Title, "T3 Code Relay API")
+  .annotate(OpenApi.Title, "Naowee Code Relay API")
   .annotate(OpenApi.Version, "1.0.0")
   .annotate(
     OpenApi.Description,
-    "Control-plane API for linking T3 environments, connecting authorized clients, and publishing agent activity.",
+    "Control-plane API for linking Naowee environments, connecting authorized clients, and publishing agent activity.",
   );
 export type RelayApi = typeof RelayApi;

@@ -798,7 +798,7 @@ it.layer(NodeServices.layer)("AgentSessionScanner", (it) => {
       }),
     );
 
-    it.effect("excludes the home directory, temporary root, and T3 data directory", () =>
+    it.effect("excludes the home directory, temporary root, and Naowee data directory", () =>
       Effect.gen(function* () {
         const path = yield* Path.Path;
         const claudeHomePath = yield* makeTempDir("t3code-claude-home-");
@@ -825,7 +825,7 @@ it.layer(NodeServices.layer)("AgentSessionScanner", (it) => {
       }),
     );
 
-    it.effect("excludes T3-managed worktree sandboxes", () =>
+    it.effect("excludes Naowee-managed worktree sandboxes", () =>
       Effect.gen(function* () {
         const path = yield* Path.Path;
         const claudeHomePath = yield* makeTempDir("t3code-claude-home-");
@@ -2370,7 +2370,7 @@ it.layer(NodeServices.layer)("AgentSessionScanner", (it) => {
       }),
     );
 
-    it.effect("does not import sessions from a T3-managed worktree", () =>
+    it.effect("does not import sessions from a Naowee-managed worktree", () =>
       Effect.gen(function* () {
         const path = yield* Path.Path;
         const fileSystem = yield* FileSystem.FileSystem;
@@ -3083,7 +3083,7 @@ describe("parseAgentSessionTranscript", () => {
       lastActiveAtMs: Date.parse("2026-08-25T08:00:00.000Z"),
     });
 
-    expect(thread?.title).toBe("<environment_context>");
+    expect(thread?.title).toBe("Initialize Git and add a README.");
     expect(thread?.messages.map((message) => message.text)).toEqual([
       context,
       "Initialize Git and add a README.",
@@ -3110,7 +3110,7 @@ describe("parseAgentSessionTranscript", () => {
       lastActiveAtMs: Date.parse("2026-08-25T08:00:00.000Z"),
     });
 
-    expect(thread?.title).toBe("<environment_context>");
+    expect(thread?.title).toBe("Create a useful project.");
     expect(thread?.messages.map((message) => message.text)).toEqual([prompt]);
   });
 
@@ -3135,6 +3135,49 @@ describe("parseAgentSessionTranscript", () => {
 
     expect(thread?.title).toBe("## My request for Codex:");
     expect(thread?.messages.map((message) => message.text)).toEqual([prompt]);
+  });
+
+  it("titles past injected context and slash-command echoes", () => {
+    const command =
+      "<command-name>/effort</command-name>\n<command-message>effort</command-message>\n<command-args>high</command-args>";
+    const claude = AgentSessionScanner.parseAgentSessionTranscript({
+      contents: [
+        encodeTranscriptRecord({
+          type: "user",
+          sessionId: "claude-session",
+          message: { role: "user", content: command },
+        }),
+        encodeTranscriptRecord({
+          type: "user",
+          sessionId: "claude-session",
+          message: { role: "user", content: "Revisa el PR #59" },
+        }),
+      ].join("\n"),
+      source: "claudeAgent",
+      providerInstanceId: ProviderInstanceId.make("claudeAgent"),
+      fallbackSessionId: "claude-session",
+      lastActiveAtMs: Date.parse("2026-08-24T12:00:00.000Z"),
+    });
+    expect(claude?.title).toBe("Revisa el PR #59");
+    expect(claude?.messages.map((message) => message.text)).toEqual([command, "Revisa el PR #59"]);
+
+    const onlyContext = AgentSessionScanner.parseAgentSessionTranscript({
+      contents: [
+        encodeTranscriptRecord({ type: "session_meta", payload: { id: "codex-session" } }),
+        encodeTranscriptRecord({
+          type: "event_msg",
+          payload: {
+            type: "user_message",
+            message: "<recommended_plugins>\n- Figma\n</recommended_plugins>",
+          },
+        }),
+      ].join("\n"),
+      source: "codex",
+      providerInstanceId: ProviderInstanceId.make("codex"),
+      fallbackSessionId: "fallback",
+      lastActiveAtMs: Date.parse("2026-08-25T08:00:00.000Z"),
+    });
+    expect(onlyContext?.title).toBe("Imported thread");
   });
 
   it("keeps context markup quoted inside visible Codex user text", () => {
