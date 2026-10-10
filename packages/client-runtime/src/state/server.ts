@@ -1160,6 +1160,10 @@ export function createServerEnvironmentAtoms<R, E>(
         key: ({ environmentId, input }) => JSON.stringify([environmentId, input]),
       },
     }),
+    classifyTurnComplexity: createEnvironmentRpcCommand(runtime, {
+      label: "environment-data:server:classify-turn-complexity",
+      tag: WS_METHODS.serverClassifyTurnComplexity,
+    }),
     refreshProviders: createEnvironmentRpcCommand(runtime, {
       label: "environment-data:server:refresh-providers",
       tag: WS_METHODS.serverRefreshProviders,

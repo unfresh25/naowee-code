@@ -19,6 +19,8 @@ export type {
   PrContentGenerationResult,
   ThreadTitleGenerationInput,
   ThreadTitleGenerationResult,
+  TurnComplexityClassificationInput,
+  TurnComplexityClassificationResult,
 } from "@t3tools/provider-core/server/textGeneration";
 
 /**
@@ -32,7 +34,8 @@ type TextGenerationOp =
   | "generateCommitMessage"
   | "generatePrContent"
   | "generateBranchName"
-  | "generateThreadTitle";
+  | "generateThreadTitle"
+  | "classifyTurnComplexity";
 
 const resolveInstance = (
   registry: ProviderInstanceRegistry.ProviderInstanceRegistry["Service"],
@@ -83,6 +86,19 @@ export const make = Effect.gen(function* () {
               ));
             return yield* textGeneration.generateThreadTitle({ ...input, linkedContext });
           }),
+        ),
+      ),
+    classifyTurnComplexity: (input) =>
+      resolveInstance(registry, "classifyTurnComplexity", input.modelSelection.instanceId).pipe(
+        Effect.flatMap((textGeneration) =>
+          textGeneration.classifyTurnComplexity
+            ? textGeneration.classifyTurnComplexity(input)
+            : Effect.fail(
+                new TextGenerationError({
+                  operation: "classifyTurnComplexity",
+                  detail: "This provider does not classify turn complexity.",
+                }),
+              ),
         ),
       ),
   });

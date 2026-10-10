@@ -344,3 +344,36 @@ export function buildThreadTitlePrompt(input: ThreadTitlePromptInput) {
 
   return { prompt, outputSchema };
 }
+
+export interface TurnComplexityPromptInput {
+  message: string;
+  attachmentCount: number;
+  contextCount: number;
+  planMode: boolean;
+}
+
+export function buildTurnComplexityPrompt(input: TurnComplexityPromptInput) {
+  const prompt = buildPromptFromMessage({
+    instruction:
+      "You rate how demanding a request to a coding agent is, so the app can pick a cheaper or stronger model for it.",
+    responseShape:
+      'Return a JSON object with key: tier, one of "simple", "medium", "complex" or "reasoning".',
+    rules: [
+      "simple: a quick answer or a trivial edit, such as a definition, a rename, a typo or a one-line change.",
+      "medium: an ordinary, well-scoped code change or question that needs reading a little code.",
+      "complex: work across several files, debugging with unclear causes, or careful technical changes.",
+      "reasoning: open-ended design, architecture, root-cause analysis, trade-offs or planning before acting.",
+      "Rate the work the message asks for, not its length. Follow-ups that approve earlier work keep that work's tier.",
+      `The message carries ${input.attachmentCount} attachment(s) and ${input.contextCount} attached context item(s).`,
+      ...(input.planMode
+        ? ["The user asked for a plan first, so prefer complex or reasoning."]
+        : []),
+    ],
+    message: input.message,
+  });
+  const outputSchema = Schema.Struct({
+    tier: Schema.Literals(["simple", "medium", "complex", "reasoning"]),
+  });
+
+  return { prompt, outputSchema };
+}

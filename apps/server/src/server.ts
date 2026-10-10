@@ -58,6 +58,7 @@ import * as GitHubApi from "./sourceControl/GitHubApi.ts";
 import * as GitLabCli from "./sourceControl/GitLabCli.ts";
 import * as ForgejoCli from "./sourceControl/ForgejoCli.ts";
 import * as TextGeneration from "./textGeneration/TextGeneration.ts";
+import * as TurnComplexityClassifier from "./textGeneration/TurnComplexityClassifier.ts";
 import * as ProviderInstanceRegistryHydration from "./provider/ProviderInstanceRegistryHydration.ts";
 import * as TerminalManager from "./terminal/Manager.ts";
 import * as McpHttpServer from "./mcp/McpHttpServer.ts";
@@ -398,6 +399,7 @@ const layerVcs = Layer.empty.pipe(
   Layer.provideMerge(layerReview),
   Layer.provideMerge(layerSourceControlRepositoryService),
   Layer.provideMerge(layerProjectCloneTracker),
+  Layer.provideMerge(TurnComplexityClassifier.layer.pipe(Layer.provide(layerGitWorkflow))),
   Layer.provideMerge(
     VcsStatusBroadcaster.layer.pipe(
       Layer.provide(layerGitWorkflow),

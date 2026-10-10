@@ -1094,7 +1094,21 @@ import {
   classifyTurnComplexity,
   resolveAutoModelSelection,
   supportsModelRouting,
+  withClassifiedTier,
+  type ModelRoutingTier,
 } from "@t3tools/client-runtime/model-routing";
+import {
+  applyLearnedRouting,
+  recordRoutingCorrection,
+  tierForModelPick,
+  type LearnedRoutingTerms,
+} from "@t3tools/client-runtime/model-routing-learning";
+import {
+  AUTO_MODEL_ROUTING_LEARNING_KEY,
+  EMPTY_LEARNED_ROUTING_TERMS,
+  LearnedRoutingTermsSchema,
+} from "~/autoModelRoutingLearning";
+import { useLocalStorage } from "~/hooks/useLocalStorage";
 import { threadRuntimeIsActive } from "@t3tools/client-runtime/state/models";
 import { useUpdateClientSettings } from "~/hooks/useSettings";
 import { proposedPlanTitle } from "@t3tools/shared/proposedPlanText";
@@ -1519,6 +1533,33 @@ export interface ChatComposerHandle {
 // --------------------------------------------------------------------------
 // Props
 // --------------------------------------------------------------------------
+
+interface AutoRoutingDraft {
+  readonly prompt: string;
+  readonly attachmentCount: number;
+  readonly contextCount: number;
+}
+
+const AUTO_ROUTING_CLASSIFY_DELAY_MS = 1_200;
+const MAX_CLASSIFIED_TIERS = 50;
+const EMPTY_CLASSIFIED_TIERS: ReadonlyMap<string, ModelRoutingTier> = new Map();
+
+const autoRoutingDraftKey = (instanceId: string, draft: AutoRoutingDraft, planMode: boolean) =>
+  [instanceId, draft.prompt.trim(), draft.attachmentCount, draft.contextCount, planMode].join(
+    "\u0000",
+  );
+
+function rememberClassifiedTier(
+  current: ReadonlyMap<string, ModelRoutingTier>,
+  key: string,
+  tier: ModelRoutingTier,
+): ReadonlyMap<string, ModelRoutingTier> {
+  const next = new Map(current);
+  next.set(key, tier);
+  const oldest = next.keys().next().value;
+  if (next.size > MAX_CLASSIFIED_TIERS && oldest !== undefined) next.delete(oldest);
+  return next;
+}
 
 export interface ChatComposerProps {
   composerDraftTarget: ScopedThreadRef | DraftId;
@@ -2354,45 +2395,69 @@ export const ChatComposer = memo(function ChatComposer(props: ChatComposerProps)
     [selectedInstanceId, selectedModel, selectedModelOptionsForDispatch],
   );
   const updateClientSettings = useUpdateClientSettings();
+  const classifyTurnComplexityCommand = useAtomCommand(serverEnvironment.classifyTurnComplexity, {
+    reportFailure: false,
+  });
+  const [learnedRoutingTerms, setLearnedRoutingTerms] = useLocalStorage(
+    AUTO_MODEL_ROUTING_LEARNING_KEY,
+    EMPTY_LEARNED_ROUTING_TERMS,
+    LearnedRoutingTermsSchema,
+  );
+  const [classifiedTierByKey, setClassifiedTierByKey] =
+    useState<ReadonlyMap<string, ModelRoutingTier>>(EMPTY_CLASSIFIED_TIERS);
   const autoModelRoutingAvailable =
     supportsModelRouting(selectedProvider) && multipleModelSelections === null;
   const autoModelRoutingActive = settings.autoModelRoutingEnabled && autoModelRoutingAvailable;
+  const autoRoutingPlanMode = interactionMode === "plan";
   const routeAutoModelSelection = useCallback(
-    (input: { prompt: string; attachmentCount: number; contextCount: number }) =>
-      autoModelRoutingActive
-        ? resolveAutoModelSelection({
-            driver: selectedProvider,
-            instanceId: selectedInstanceId,
-            complexity: classifyTurnComplexity({ ...input, planMode: interactionMode === "plan" }),
-            current: activeThreadModelSelection,
-            threadStarted: activeThread?.latestRun != null,
-            threadBusy: threadRuntimeIsActive(activeThread?.runtime),
-            availableModels: selectedProviderModels.map((model) => model.slug),
-            tierOverrides: settings.autoModelRoutingTiers[selectedProvider],
-          })
-        : null,
+    (draft: AutoRoutingDraft, learned: LearnedRoutingTerms = learnedRoutingTerms) => {
+      if (!autoModelRoutingActive) return null;
+      const heuristic = classifyTurnComplexity({ ...draft, planMode: autoRoutingPlanMode });
+      const classifiedTier = heuristic.uncertain
+        ? classifiedTierByKey.get(
+            autoRoutingDraftKey(selectedInstanceId, draft, autoRoutingPlanMode),
+          )
+        : undefined;
+      const complexity = applyLearnedRouting(
+        classifiedTier ? withClassifiedTier(heuristic, classifiedTier) : heuristic,
+        draft.prompt,
+        learned,
+      );
+      const decision = resolveAutoModelSelection({
+        driver: selectedProvider,
+        instanceId: selectedInstanceId,
+        complexity,
+        current: activeThreadModelSelection,
+        threadStarted: activeThread?.latestRun != null,
+        threadBusy: threadRuntimeIsActive(activeThread?.runtime),
+        availableModels: selectedProviderModels.map((model) => model.slug),
+        tierOverrides: settings.autoModelRoutingTiers[selectedProvider],
+      });
+      return decision ? { ...decision, complexity } : null;
+    },
     [
       activeThread,
       activeThreadModelSelection,
       autoModelRoutingActive,
-      settings.autoModelRoutingTiers,
-      interactionMode,
+      autoRoutingPlanMode,
+      classifiedTierByKey,
+      learnedRoutingTerms,
       selectedInstanceId,
       selectedProvider,
       selectedProviderModels,
+      settings.autoModelRoutingTiers,
     ],
   );
-  const autoModelRoutingPreview = useMemo(
-    () =>
-      routeAutoModelSelection({
-        prompt,
-        attachmentCount: composerImages.length + composerFiles.length,
-        contextCount:
-          composerTerminalContexts.length +
-          composerReviewComments.length +
-          composerThreadContexts.length +
-          composerPreviewAnnotations.length,
-      }),
+  const autoRoutingDraft = useMemo<AutoRoutingDraft>(
+    () => ({
+      prompt,
+      attachmentCount: composerImages.length + composerFiles.length,
+      contextCount:
+        composerTerminalContexts.length +
+        composerReviewComments.length +
+        composerThreadContexts.length +
+        composerPreviewAnnotations.length,
+    }),
     [
       composerFiles.length,
       composerImages.length,
@@ -2401,9 +2466,54 @@ export const ChatComposer = memo(function ChatComposer(props: ChatComposerProps)
       composerTerminalContexts.length,
       composerThreadContexts.length,
       prompt,
-      routeAutoModelSelection,
     ],
   );
+  const autoModelRoutingPreview = useMemo(
+    () => routeAutoModelSelection(autoRoutingDraft),
+    [autoRoutingDraft, routeAutoModelSelection],
+  );
+  const pendingTurnClassification = useMemo(() => {
+    if (!autoModelRoutingActive) return null;
+    const heuristic = classifyTurnComplexity({
+      ...autoRoutingDraft,
+      planMode: autoRoutingPlanMode,
+    });
+    if (!heuristic.uncertain) return null;
+    const key = autoRoutingDraftKey(selectedInstanceId, autoRoutingDraft, autoRoutingPlanMode);
+    return classifiedTierByKey.has(key) ? null : { key, draft: autoRoutingDraft };
+  }, [
+    autoModelRoutingActive,
+    autoRoutingDraft,
+    autoRoutingPlanMode,
+    classifiedTierByKey,
+    selectedInstanceId,
+  ]);
+  useEffect(() => {
+    if (pendingTurnClassification === null) return;
+    const { key, draft } = pendingTurnClassification;
+    const timer = window.setTimeout(() => {
+      void classifyTurnComplexityCommand({
+        environmentId,
+        input: {
+          prompt: draft.prompt,
+          attachmentCount: draft.attachmentCount,
+          contextCount: draft.contextCount,
+          planMode: autoRoutingPlanMode,
+        },
+      }).then((result) => {
+        if (result._tag !== "Success") return;
+        setClassifiedTierByKey((current) =>
+          rememberClassifiedTier(current, key, result.value.tier),
+        );
+      });
+    }, AUTO_ROUTING_CLASSIFY_DELAY_MS);
+    return () => window.clearTimeout(timer);
+  }, [
+    autoRoutingPlanMode,
+    classifyTurnComplexityCommand,
+    environmentId,
+    pendingTurnClassification,
+  ]);
   const autoModelRoutingLabel = useMemo(() => {
     if (!autoModelRoutingPreview) return null;
     const { selection } = autoModelRoutingPreview;
@@ -5651,7 +5761,28 @@ export const ChatComposer = memo(function ChatComposer(props: ChatComposerProps)
         onInstanceModelChange={(instanceId, model) => {
           setMultipleModelSelections(null);
           if (autoModelRoutingActive && instanceId === selectedInstanceId) {
-            void updateClientSettings({ autoModelRoutingEnabled: false });
+            let learned = learnedRoutingTerms;
+            const routedTier = autoModelRoutingPreview?.complexity.tier;
+            if (routedTier && autoRoutingDraft.prompt.trim().length > 0) {
+              const pickedTier = tierForModelPick(
+                selectedProvider,
+                model,
+                settings.autoModelRoutingTiers[selectedProvider],
+                routedTier,
+              );
+              if (pickedTier) {
+                learned = recordRoutingCorrection(
+                  learned,
+                  autoRoutingDraft.prompt,
+                  routedTier,
+                  pickedTier,
+                );
+                if (learned !== learnedRoutingTerms) setLearnedRoutingTerms(learned);
+              }
+            }
+            if (routeAutoModelSelection(autoRoutingDraft, learned)?.selection.model !== model) {
+              void updateClientSettings({ autoModelRoutingEnabled: false });
+            }
           }
           onProviderModelSelect(instanceId, model);
         }}

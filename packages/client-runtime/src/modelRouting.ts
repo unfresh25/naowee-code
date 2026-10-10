@@ -75,6 +75,7 @@ export interface TurnComplexity {
   readonly score: number;
   readonly signals: ReadonlyArray<string>;
   readonly continuation: boolean;
+  readonly uncertain: boolean;
 }
 
 const WORD = "[\\p{L}\\p{N}_]";
@@ -136,6 +137,7 @@ const CONTINUATION_PATTERN = new RegExp(
 );
 
 const TIER_BOUNDARIES = { simpleMedium: 0.15, mediumComplex: 0.35, complexReasoning: 0.6 };
+const UNCERTAIN_MARGIN = 0.08;
 
 const WEIGHTS = {
   tokenCount: 0.1,
@@ -202,7 +204,26 @@ export function classifyTurnComplexity(input: TurnComplexityInput): TurnComplexi
     signals.push("plan mode");
   }
 
-  return { tier, score, signals, continuation };
+  const nearBoundary = Object.values(TIER_BOUNDARIES).some(
+    (boundary) => Math.abs(score - boundary) < UNCERTAIN_MARGIN,
+  );
+  const unexplainedShortAsk =
+    tier === "simple" && approxTokens < 25 && simpleHits === 0 && reasoningHits === 0;
+  const uncertain =
+    !continuation &&
+    prompt.length >= 12 &&
+    reasoningHits < 2 &&
+    !input.planMode &&
+    (nearBoundary || unexplainedShortAsk);
+
+  return { tier, score, signals, continuation, uncertain };
+}
+
+export function withClassifiedTier(
+  complexity: TurnComplexity,
+  tier: ModelRoutingTier,
+): TurnComplexity {
+  return { ...complexity, tier, signals: [...complexity.signals, `llm: ${tier}`] };
 }
 
 const tierIndex = (tier: ModelRoutingTier) => TIER_ORDER.indexOf(tier);

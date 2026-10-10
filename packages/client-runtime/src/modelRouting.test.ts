@@ -30,6 +30,7 @@ const complexity = (tier: TurnComplexity["tier"], continuation = false): TurnCom
   score: 0,
   signals: [],
   continuation,
+  uncertain: false,
 });
 
 describe("classifyTurnComplexity", () => {
@@ -56,6 +57,15 @@ describe("classifyTurnComplexity", () => {
     const result = classify("por qué el índice de la caché no se usa? analiza la consulta");
     expect(result.signals).toContain("reasoning x2");
     expect(result.signals.some((signal) => signal.startsWith("technical"))).toBe(true);
+  });
+
+  it("flags unexplained short asks for the LLM classifier and trusts clear ones", () => {
+    expect(classify("arregla el bug del login").uncertain).toBe(true);
+    expect(classify("qué es un monorepo?").uncertain).toBe(false);
+    expect(classify("dale").uncertain).toBe(false);
+    expect(
+      classify("Analiza paso a paso por qué falla el deploy y compara los trade-offs").uncertain,
+    ).toBe(false);
   });
 
   it("never classifies plan mode below complex", () => {

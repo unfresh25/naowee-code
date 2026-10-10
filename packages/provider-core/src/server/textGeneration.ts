@@ -4,6 +4,7 @@ import type {
   ModelSelection,
   TextGenerationError,
 } from "@t3tools/contracts";
+import type { ModelRoutingTier } from "@t3tools/contracts/settings";
 import type * as Effect from "effect/Effect";
 
 import type { TextGenerationPolicy } from "./textGenerationPolicy.ts";
@@ -74,6 +75,19 @@ export interface ThreadTitleGenerationResult {
   needsRefinement?: boolean | undefined;
 }
 
+export interface TurnComplexityClassificationInput {
+  cwd: string;
+  message: string;
+  attachmentCount: number;
+  contextCount: number;
+  planMode: boolean;
+  modelSelection: ModelSelection;
+}
+
+export interface TurnComplexityClassificationResult {
+  tier: ModelRoutingTier;
+}
+
 /** Commit, change request, branch, and title generation backed by one provider instance. */
 export interface ProviderTextGeneration {
   /**
@@ -101,4 +115,8 @@ export interface ProviderTextGeneration {
   readonly generateThreadTitle: (
     input: ThreadTitleGenerationInput,
   ) => Effect.Effect<ThreadTitleGenerationResult, TextGenerationError>;
+
+  readonly classifyTurnComplexity?: (
+    input: TurnComplexityClassificationInput,
+  ) => Effect.Effect<TurnComplexityClassificationResult, TextGenerationError>;
 }

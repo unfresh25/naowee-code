@@ -9,6 +9,13 @@ import {
   type ModelRoutingTier,
 } from "@t3tools/client-runtime/model-routing";
 
+import {
+  AUTO_MODEL_ROUTING_LEARNING_KEY,
+  EMPTY_LEARNED_ROUTING_TERMS,
+  LearnedRoutingTermsSchema,
+} from "../../autoModelRoutingLearning";
+import { useLocalStorage } from "../../hooks/useLocalStorage";
+import { Button } from "../ui/button";
 import { Select, SelectItem, SelectPopup, SelectTrigger, SelectValue } from "../ui/select";
 import { Switch } from "../ui/switch";
 import { SettingResetButton, SettingsRow, SettingsSection } from "./settingsLayout";
@@ -42,6 +49,12 @@ export function AutoModelRoutingSettings(props: {
   onEnabledChange: (enabled: boolean) => void;
   onTiersChange: (tiers: TierOverridesByDriver) => void;
 }) {
+  const [learnedTerms, setLearnedTerms] = useLocalStorage(
+    AUTO_MODEL_ROUTING_LEARNING_KEY,
+    EMPTY_LEARNED_ROUTING_TERMS,
+    LearnedRoutingTermsSchema,
+  );
+  const learnedTermCount = Object.keys(learnedTerms).length;
   const routedProviders = props.providers.filter(
     (provider, index, all) =>
       supportsModelRouting(provider.driver) &&
@@ -61,6 +74,26 @@ export function AutoModelRoutingSettings(props: {
           />
         }
       />
+      {props.enabled ? (
+        <SettingsRow
+          title="Learned corrections"
+          description={
+            learnedTermCount === 0
+              ? "Nothing learned yet. When you pick a different model than Auto, this device learns from the words in that message."
+              : `${learnedTermCount} ${learnedTermCount === 1 ? "term" : "terms"} learned from your model picks on this device.`
+          }
+          control={
+            <Button
+              size="sm"
+              variant="outline"
+              disabled={learnedTermCount === 0}
+              onClick={() => setLearnedTerms(EMPTY_LEARNED_ROUTING_TERMS)}
+            >
+              Reset
+            </Button>
+          }
+        />
+      ) : null}
       {props.enabled
         ? routedProviders.map((provider) => (
             <ProviderTierRows

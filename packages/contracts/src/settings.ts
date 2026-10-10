@@ -297,6 +297,9 @@ export const DiffColorScheme = Schema.Literals(["red-green", "blue-orange"]);
 export const ChatWidth = Schema.Literals(["comfortable", "wide", "full"]);
 export type ChatWidth = typeof ChatWidth.Type;
 
+export const ModelRoutingTier = Schema.Literals(["simple", "medium", "complex", "reasoning"]);
+export type ModelRoutingTier = typeof ModelRoutingTier.Type;
+
 export const ModelRoutingTierTarget = Schema.Struct({
   model: TrimmedNonEmptyString,
   effort: TrimmedNonEmptyString,

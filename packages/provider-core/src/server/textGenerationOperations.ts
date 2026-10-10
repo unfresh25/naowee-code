@@ -19,6 +19,7 @@ import {
   buildCommitMessagePrompt,
   buildPrContentPrompt,
   buildThreadTitlePrompt,
+  buildTurnComplexityPrompt,
 } from "./textGenerationPrompts.ts";
 import {
   sanitizeCommitSubject,
@@ -148,10 +149,27 @@ export function fromRunner(name: string, run: Runner): ProviderTextGeneration {
     };
   });
 
+  const classifyTurnComplexity: NonNullable<ProviderTextGeneration["classifyTurnComplexity"]> =
+    Effect.fn(`${name}.classifyTurnComplexity`)(function* (input) {
+      const generated = yield* run({
+        operation: "classifyTurnComplexity",
+        cwd: input.cwd,
+        modelSelection: input.modelSelection,
+        ...buildTurnComplexityPrompt({
+          message: input.message,
+          attachmentCount: input.attachmentCount,
+          contextCount: input.contextCount,
+          planMode: input.planMode,
+        }),
+      });
+      return { tier: generated.tier };
+    });
+
   return {
     generateCommitMessage,
     generatePrContent,
     generateBranchName,
     generateThreadTitle,
+    classifyTurnComplexity,
   } satisfies ProviderTextGeneration;
 }

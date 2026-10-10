@@ -5,6 +5,7 @@ import {
   buildCommitMessagePrompt,
   buildPrContentPrompt,
   buildThreadTitlePrompt,
+  buildTurnComplexityPrompt,
 } from "./textGenerationPrompts.ts";
 import {
   normalizeCliError,
@@ -12,6 +13,7 @@ import {
   toJsonSchemaObject,
 } from "./textGenerationUtils.ts";
 import { TextGenerationError } from "@t3tools/contracts";
+import * as Schema from "effect/Schema";
 
 describe("buildCommitMessagePrompt", () => {
   it("includes staged patch and summary in the prompt", () => {
@@ -361,5 +363,37 @@ describe("normalizeCliError", () => {
 
     expect(result.detail).toBe("Failed to generate a commit message");
     expect(result.message).not.toContain("secret-token");
+  });
+});
+
+describe("buildTurnComplexityPrompt", () => {
+  it("describes every tier and the attached context", () => {
+    const result = buildTurnComplexityPrompt({
+      message: "Refactor the auth flow",
+      attachmentCount: 2,
+      contextCount: 1,
+      planMode: false,
+    });
+
+    for (const tier of ["simple:", "medium:", "complex:", "reasoning:"]) {
+      expect(result.prompt).toContain(tier);
+    }
+    expect(result.prompt).toContain("2 attachment(s) and 1 attached context item(s)");
+    expect(result.prompt).toContain("Refactor the auth flow");
+    expect(result.prompt).not.toContain("asked for a plan first");
+  });
+
+  it("leans toward stronger tiers in plan mode and only accepts known tiers", () => {
+    const result = buildTurnComplexityPrompt({
+      message: "Plan the migration",
+      attachmentCount: 0,
+      contextCount: 0,
+      planMode: true,
+    });
+
+    expect(result.prompt).toContain("asked for a plan first");
+    const isTurnComplexityOutput = Schema.is(result.outputSchema);
+    expect(isTurnComplexityOutput({ tier: "complex" })).toBe(true);
+    expect(isTurnComplexityOutput({ tier: "huge" })).toBe(false);
   });
 });

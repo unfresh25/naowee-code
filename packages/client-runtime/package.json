@@ -35,6 +35,10 @@
       "types": "./src/modelRouting.ts",
       "default": "./src/modelRouting.ts"
     },
+    "./model-routing-learning": {
+      "types": "./src/modelRoutingLearning.ts",
+      "default": "./src/modelRoutingLearning.ts"
+    },
     "./project-favicon-cache": {
       "types": "./src/projectFaviconCache.ts",
       "default": "./src/projectFaviconCache.ts"
