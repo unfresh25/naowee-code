@@ -504,6 +504,12 @@ export const SETTINGS_SEARCH_ITEMS = [
     searchTerms: ["generated thread titles source control content default provider"],
   },
   {
+    id: "auto-model-routing",
+    title: "Auto model routing",
+    to: "/settings/general",
+    searchTerms: ["auto router complexity tier model effort cheaper smart routing"],
+  },
+  {
     id: "cli-command",
     title: "naowee command",
     to: "/settings/general",

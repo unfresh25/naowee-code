@@ -31,6 +31,10 @@
       "types": "./src/load-balancing.ts",
       "default": "./src/load-balancing.ts"
     },
+    "./model-routing": {
+      "types": "./src/modelRouting.ts",
+      "default": "./src/modelRouting.ts"
+    },
     "./project-favicon-cache": {
       "types": "./src/projectFaviconCache.ts",
       "default": "./src/projectFaviconCache.ts"

@@ -56,6 +56,7 @@ import * as Schema from "effect/Schema";
 import { APP_VERSION, HOSTED_APP_CHANNEL, HOSTED_APP_CHANNEL_LABEL } from "../../branding";
 import { IS_NIGHTLY_BUILD, NightlyMobileBetaRow } from "../NightlyMobileBeta";
 import { CliCommandSettingsRow } from "./CliCommandSettingsRow";
+import { AutoModelRoutingSettings } from "./AutoModelRoutingSettings";
 import {
   canCheckForUpdate,
   getDesktopUpdateButtonTooltip,
@@ -655,6 +656,10 @@ export function useSettingsRestore(onRestored?: () => void) {
         : []),
       ...(settings.confirmQuit !== DEFAULT_UNIFIED_SETTINGS.confirmQuit ? ["Quit shortcut"] : []),
       ...(isTextGenerationModelDirty ? ["Text generation model"] : []),
+      ...(settings.autoModelRoutingEnabled !== DEFAULT_UNIFIED_SETTINGS.autoModelRoutingEnabled
+        ? ["Auto model routing"]
+        : []),
+      ...(Object.keys(settings.autoModelRoutingTiers).length > 0 ? ["Auto routing tiers"] : []),
       ...getChangedBrowserSettingLabels(settings),
       ...(settings.enableAgentBrowserAccess !== DEFAULT_UNIFIED_SETTINGS.enableAgentBrowserAccess
         ? ["Agent browser access"]
@@ -806,6 +811,8 @@ export function useSettingsRestore(onRestored?: () => void) {
       sendShortcut: DEFAULT_UNIFIED_SETTINGS.sendShortcut,
       followUpBehavior: DEFAULT_UNIFIED_SETTINGS.followUpBehavior,
       contextWindowMeterEnabled: DEFAULT_UNIFIED_SETTINGS.contextWindowMeterEnabled,
+      autoModelRoutingEnabled: DEFAULT_UNIFIED_SETTINGS.autoModelRoutingEnabled,
+      autoModelRoutingTiers: DEFAULT_UNIFIED_SETTINGS.autoModelRoutingTiers,
       environmentIdentificationMode: DEFAULT_UNIFIED_SETTINGS.environmentIdentificationMode,
       glassOpacity: DEFAULT_UNIFIED_SETTINGS.glassOpacity,
       panelAnimationDurationMs: DEFAULT_UNIFIED_SETTINGS.panelAnimationDurationMs,
@@ -3338,6 +3345,14 @@ export function GeneralSettingsPanel() {
           }
         />
       </SettingsSection>
+
+      <AutoModelRoutingSettings
+        enabled={settings.autoModelRoutingEnabled}
+        tiers={settings.autoModelRoutingTiers}
+        providers={serverProviders}
+        onEnabledChange={(enabled) => updateSettings({ autoModelRoutingEnabled: enabled })}
+        onTiersChange={(tiers) => updateSettings({ autoModelRoutingTiers: tiers })}
+      />
 
       <SettingsSection id="about" title="About">
         {isElectron || HOSTED_APP_CHANNEL ? (

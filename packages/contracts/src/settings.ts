@@ -297,6 +297,20 @@ export const DiffColorScheme = Schema.Literals(["red-green", "blue-orange"]);
 export const ChatWidth = Schema.Literals(["comfortable", "wide", "full"]);
 export type ChatWidth = typeof ChatWidth.Type;
 
+export const ModelRoutingTierTarget = Schema.Struct({
+  model: TrimmedNonEmptyString,
+  effort: TrimmedNonEmptyString,
+});
+export type ModelRoutingTierTarget = typeof ModelRoutingTierTarget.Type;
+
+export const ModelRoutingTierOverrides = Schema.Struct({
+  simple: Schema.optionalKey(ModelRoutingTierTarget),
+  medium: Schema.optionalKey(ModelRoutingTierTarget),
+  complex: Schema.optionalKey(ModelRoutingTierTarget),
+  reasoning: Schema.optionalKey(ModelRoutingTierTarget),
+});
+export type ModelRoutingTierOverrides = typeof ModelRoutingTierOverrides.Type;
+
 export const ClientSettingsSchema = Schema.Struct({
   notificationMode: NotificationMode.pipe(
     Schema.withDecodingDefault(Effect.succeed("off" as const)),
@@ -447,6 +461,10 @@ export const ClientSettingsSchema = Schema.Struct({
   // Legacy context window meter. The composer hides it by default; users who
   // still want the old usage indicator can restore it from Settings.
   contextWindowMeterEnabled: Schema.Boolean.pipe(Schema.withDecodingDefault(Effect.succeed(true))),
+  autoModelRoutingEnabled: Schema.Boolean.pipe(Schema.withDecodingDefault(Effect.succeed(true))),
+  autoModelRoutingTiers: Schema.Record(Schema.String, ModelRoutingTierOverrides).pipe(
+    Schema.withDecodingDefault(Effect.succeed({})),
+  ),
   // Desktop resting composer: scrolling an existing thread's conversation
   // settles the composer into its single-line layout. Losing focus never does.
   composerCollapseOnScroll: Schema.Boolean.pipe(Schema.withDecodingDefault(Effect.succeed(true))),
@@ -1610,6 +1628,10 @@ export const ClientSettingsPatch = Schema.Struct({
   ),
   planModeEnabled: Schema.optionalKey(Schema.Boolean),
   contextWindowMeterEnabled: Schema.optionalKey(Schema.Boolean),
+  autoModelRoutingEnabled: Schema.optionalKey(Schema.Boolean),
+  autoModelRoutingTiers: Schema.optionalKey(
+    Schema.Record(Schema.String, ModelRoutingTierOverrides),
+  ),
   composerCollapseOnScroll: Schema.optionalKey(Schema.Boolean),
   composerRichTextEnabled: Schema.optionalKey(Schema.Boolean),
   sendShortcut: Schema.optionalKey(Schema.Literals(["enter", "mod-enter-multiline", "mod-enter"])),

@@ -1087,8 +1087,16 @@ import {
   PencilRulerIcon,
   PlayIcon,
   ShieldIcon,
+  SparklesIcon,
   XIcon,
 } from "lucide-react";
+import {
+  classifyTurnComplexity,
+  resolveAutoModelSelection,
+  supportsModelRouting,
+} from "@t3tools/client-runtime/model-routing";
+import { threadRuntimeIsActive } from "@t3tools/client-runtime/state/models";
+import { useUpdateClientSettings } from "~/hooks/useSettings";
 import { proposedPlanTitle } from "@t3tools/shared/proposedPlanText";
 import { hasProviderSetup } from "./ProviderStatusBanner";
 import {
@@ -2345,6 +2353,68 @@ export const ChatComposer = memo(function ChatComposer(props: ChatComposerProps)
     () => createModelSelection(selectedInstanceId, selectedModel, selectedModelOptionsForDispatch),
     [selectedInstanceId, selectedModel, selectedModelOptionsForDispatch],
   );
+  const updateClientSettings = useUpdateClientSettings();
+  const autoModelRoutingAvailable =
+    supportsModelRouting(selectedProvider) && multipleModelSelections === null;
+  const autoModelRoutingActive = settings.autoModelRoutingEnabled && autoModelRoutingAvailable;
+  const routeAutoModelSelection = useCallback(
+    (input: { prompt: string; attachmentCount: number; contextCount: number }) =>
+      autoModelRoutingActive
+        ? resolveAutoModelSelection({
+            driver: selectedProvider,
+            instanceId: selectedInstanceId,
+            complexity: classifyTurnComplexity({ ...input, planMode: interactionMode === "plan" }),
+            current: activeThreadModelSelection,
+            threadStarted: activeThread?.latestRun != null,
+            threadBusy: threadRuntimeIsActive(activeThread?.runtime),
+            availableModels: selectedProviderModels.map((model) => model.slug),
+            tierOverrides: settings.autoModelRoutingTiers[selectedProvider],
+          })
+        : null,
+    [
+      activeThread,
+      activeThreadModelSelection,
+      autoModelRoutingActive,
+      settings.autoModelRoutingTiers,
+      interactionMode,
+      selectedInstanceId,
+      selectedProvider,
+      selectedProviderModels,
+    ],
+  );
+  const autoModelRoutingPreview = useMemo(
+    () =>
+      routeAutoModelSelection({
+        prompt,
+        attachmentCount: composerImages.length + composerFiles.length,
+        contextCount:
+          composerTerminalContexts.length +
+          composerReviewComments.length +
+          composerThreadContexts.length +
+          composerPreviewAnnotations.length,
+      }),
+    [
+      composerFiles.length,
+      composerImages.length,
+      composerPreviewAnnotations.length,
+      composerReviewComments.length,
+      composerTerminalContexts.length,
+      composerThreadContexts.length,
+      prompt,
+      routeAutoModelSelection,
+    ],
+  );
+  const autoModelRoutingLabel = useMemo(() => {
+    if (!autoModelRoutingPreview) return null;
+    const { selection } = autoModelRoutingPreview;
+    const name =
+      selectedProviderModels.find((model) => model.slug === selection.model)?.name ??
+      selection.model;
+    const effort = selection.options?.find(
+      (option) => option.id === "effort" || option.id === "reasoningEffort",
+    )?.value;
+    return effort ? `${name} · ${String(effort)}` : name;
+  }, [autoModelRoutingPreview, selectedProviderModels]);
   const selectedModelForPicker = selectedModel;
   // Instance-keyed option list so the picker can show each configured
   // instance (built-in + custom) as a first-class sidebar entry. The
@@ -5580,10 +5650,50 @@ export const ChatComposer = memo(function ChatComposer(props: ChatComposerProps)
         getModelDisabledReason={getModelDisabledReason}
         onInstanceModelChange={(instanceId, model) => {
           setMultipleModelSelections(null);
+          if (autoModelRoutingActive && instanceId === selectedInstanceId) {
+            void updateClientSettings({ autoModelRoutingEnabled: false });
+          }
           onProviderModelSelect(instanceId, model);
         }}
         onOpenProviderSetup={onOpenProviderSetup}
       />
+      {autoModelRoutingAvailable ? (
+        <Tooltip>
+          <TooltipTrigger
+            render={
+              <ComposerControl
+                size={composerControlsCollapsed ? "xs" : "sm"}
+                className="shrink-0 whitespace-nowrap"
+                aria-pressed={settings.autoModelRoutingEnabled}
+                type="button"
+                disabled={providerCatalogPending || isSendBusy}
+                onClick={() => {
+                  void updateClientSettings({
+                    autoModelRoutingEnabled: !settings.autoModelRoutingEnabled,
+                  });
+                }}
+                aria-label="Auto model routing"
+                data-chat-auto-model-routing="true"
+              />
+            }
+          >
+            <ComposerControlIcon
+              icon={SparklesIcon}
+              size={composerControlsCollapsed ? "xs" : "sm"}
+            />
+            <span data-composer-control-label className="sr-only sm:not-sr-only">
+              Auto
+            </span>
+          </TooltipTrigger>
+          <TooltipPopup side="top">
+            {autoModelRoutingActive
+              ? autoModelRoutingLabel
+                ? `Auto routing: next turn uses ${autoModelRoutingLabel}`
+                : "Auto routing picks the model by request complexity"
+              : "Pick the model automatically by request complexity"}
+          </TooltipPopup>
+        </Tooltip>
+      ) : null}
 
       <>
         {restingBlockDefs.map((def, index) => {
@@ -6531,35 +6641,50 @@ export const ChatComposer = memo(function ChatComposer(props: ChatComposerProps)
           composerEditorRef.current?.focusAt(nextCollapsedCursor);
         });
       },
-      getSendContext: () => ({
-        prompt: promptRef.current,
-        images: composerImagesRef.current,
-        files: composerFilesRef.current,
-        terminalContexts: composerTerminalContextsRef.current,
-        previewAnnotations: composerPreviewAnnotations,
-        reviewComments: composerReviewComments,
-        threadContexts: composerThreadContexts,
-        selectedPromptEffort,
-        selectedModelOptionsForDispatch,
-        selectedModelSelection,
-        multipleModelSelections:
-          routeKind === "draft" && multipleModelSelections !== null
-            ? multipleModelSelections.map((selection) =>
-                selection.instanceId === selectedModelSelection.instanceId &&
-                selection.model === selectedModelSelection.model
-                  ? selectedModelSelection
-                  : selection,
-              )
-            : null,
-        providerAvailable:
-          multipleModelSelections !== null ||
-          (!noProviderAvailable && providerSendBlockReason === null),
-        selectedProvider,
-        selectedModel,
-        selectedProviderModels,
-        interactionMode,
-        interactionModeEnabled: planModeUiEnabled,
-      }),
+      getSendContext: () => {
+        const routed = routeAutoModelSelection({
+          prompt: promptRef.current,
+          attachmentCount: composerImagesRef.current.length + composerFilesRef.current.length,
+          contextCount:
+            composerTerminalContextsRef.current.length +
+            composerReviewComments.length +
+            composerThreadContexts.length +
+            composerPreviewAnnotations.length,
+        });
+        const routedSelection =
+          routed && routed.selection !== selectedModelSelection ? routed.selection : null;
+        return {
+          prompt: promptRef.current,
+          images: composerImagesRef.current,
+          files: composerFilesRef.current,
+          terminalContexts: composerTerminalContextsRef.current,
+          previewAnnotations: composerPreviewAnnotations,
+          reviewComments: composerReviewComments,
+          threadContexts: composerThreadContexts,
+          selectedPromptEffort: routedSelection ? null : selectedPromptEffort,
+          selectedModelOptionsForDispatch: routedSelection
+            ? routedSelection.options
+            : selectedModelOptionsForDispatch,
+          selectedModelSelection: routedSelection ?? selectedModelSelection,
+          multipleModelSelections:
+            routeKind === "draft" && multipleModelSelections !== null
+              ? multipleModelSelections.map((selection) =>
+                  selection.instanceId === selectedModelSelection.instanceId &&
+                  selection.model === selectedModelSelection.model
+                    ? selectedModelSelection
+                    : selection,
+                )
+              : null,
+          providerAvailable:
+            multipleModelSelections !== null ||
+            (!noProviderAvailable && providerSendBlockReason === null),
+          selectedProvider,
+          selectedModel: routedSelection?.model ?? selectedModel,
+          selectedProviderModels,
+          interactionMode,
+          interactionModeEnabled: planModeUiEnabled,
+        };
+      },
       setMultipleModelSelections,
       validateProviderInput: (providerInput: string) => {
         const validationMessage = getComposerSubmissionValidationMessage({
@@ -6608,6 +6733,7 @@ export const ChatComposer = memo(function ChatComposer(props: ChatComposerProps)
       selectedModelSelection,
       multipleModelSelections,
       setMultipleModelSelections,
+      routeAutoModelSelection,
       routeKind,
       noProviderAvailable,
       providerSendBlockReason,
