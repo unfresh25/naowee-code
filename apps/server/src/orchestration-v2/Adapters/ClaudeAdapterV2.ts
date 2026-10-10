@@ -332,6 +332,9 @@ export interface ClaudeAgentSdkQuerySession {
   readonly messages: Stream.Stream<SDKMessage, ClaudeAgentSdkQueryRunnerError>;
   readonly offer: (message: SDKUserMessage) => Effect.Effect<void, ClaudeAgentSdkQueryRunnerError>;
   readonly setModel: (model: string) => Effect.Effect<void, ClaudeAgentSdkQueryRunnerError>;
+  readonly setEffort: (
+    effort: string | null,
+  ) => Effect.Effect<void, ClaudeAgentSdkQueryRunnerError>;
   readonly setPermissionMode: (
     mode: PermissionMode,
   ) => Effect.Effect<void, ClaudeAgentSdkQueryRunnerError>;
@@ -405,6 +408,12 @@ const isProviderAdapterRollbackThreadError = Schema.is(
   ProviderAdapter.ProviderAdapterRollbackThreadError,
 );
 
+const claudeSettingsKey = (settings: Readonly<Record<string, boolean>>) =>
+  Object.keys(settings)
+    .toSorted()
+    .map((key) => `${key}=${String(settings[key])}`)
+    .join(",");
+
 function queryRunnerError(cause: unknown, method: string): ClaudeAgentSdkQueryRunnerError {
   return isClaudeAgentSdkQueryRunnerError(cause)
     ? cause
@@ -472,6 +481,14 @@ export type ClaudeAgentSdkProtocolLogEvent =
       readonly payload: {
         readonly type: "query.set_model";
         readonly model: string;
+      };
+    }
+  | {
+      readonly direction: "outgoing";
+      readonly stage: "decoded";
+      readonly payload: {
+        readonly type: "query.set_effort";
+        readonly effort: string | null;
       };
     }
   | {
@@ -682,6 +699,25 @@ export const layerQueryRunner: Layer.Layer<
                   payload: {
                     type: "query.set_model",
                     model,
+                  },
+                }),
+              ),
+            ),
+          setEffort: (effort) =>
+            Effect.tryPromise({
+              try: () =>
+                queryRuntime.applyFlagSettings({
+                  effortLevel: effort as NonNullable<ClaudeQueryOptions["effort"]> | null,
+                }),
+              catch: (cause) => queryRunnerError(cause, "applyFlagSettings"),
+            }).pipe(
+              Effect.tap(() =>
+                logProtocolEvent({
+                  direction: "outgoing",
+                  stage: "decoded",
+                  payload: {
+                    type: "query.set_effort",
+                    effort,
                   },
                 }),
               ),
@@ -2798,7 +2834,10 @@ interface ClaudeLiveQueryContext {
   readonly nativeThreadId: string;
   readonly query: ClaudeAgentSdkQuerySession;
   readonly queryPolicyKey: string;
-  readonly selectionKey: string;
+  selectionKey: string;
+  liveModel: string;
+  liveEffort: string | undefined;
+  readonly liveSettingsKey: string;
   readonly closed: Deferred.Deferred<void, never>;
   // Whether this CLI process echoes a prompt's uuid on the first frame of
   // the turn answering it ("early") or only on its result. Learned from the
@@ -7298,6 +7337,35 @@ export const makeClaudeAdapterV2 = Effect.fn("makeClaudeAdapterV2")(function* (
             }
             return existing;
           }
+          if (
+            existing !== null &&
+            existing.nativeThreadId === nativeThreadId &&
+            existing.queryPolicyKey === queryPolicyKey &&
+            existing.liveSettingsKey === claudeSettingsKey(compiledSelection.settings) &&
+            !existing.stopping
+          ) {
+            const switchedInPlace = yield* Effect.gen(function* () {
+              if (existing.liveModel !== compiledSelection.apiModelId) {
+                yield* existing.query.setModel(compiledSelection.apiModelId);
+                existing.liveModel = compiledSelection.apiModelId;
+              }
+              if (existing.liveEffort !== compiledSelection.effort) {
+                yield* existing.query.setEffort(compiledSelection.effort ?? null);
+                existing.liveEffort = compiledSelection.effort;
+              }
+            }).pipe(
+              Effect.as(true),
+              Effect.orElseSucceed(() => false),
+            );
+            if (switchedInPlace) {
+              existing.selectionKey = compiledSelection.queryIdentity;
+              if (existing.permissionMode !== existing.openedPermissionMode) {
+                yield* existing.query.setPermissionMode(existing.openedPermissionMode);
+                existing.permissionMode = existing.openedPermissionMode;
+              }
+              return existing;
+            }
+          }
 
           // Background agents and shells run inside the CLI process, so a
           // new selection would kill them and lose their results. Refuse until
@@ -7415,6 +7483,9 @@ export const makeClaudeAdapterV2 = Effect.fn("makeClaudeAdapterV2")(function* (
             query: querySession,
             queryPolicyKey,
             selectionKey: compiledSelection.queryIdentity,
+            liveModel: compiledSelection.apiModelId,
+            liveEffort: compiledSelection.effort,
+            liveSettingsKey: claudeSettingsKey(compiledSelection.settings),
             closed,
             promptEchoMode: "unknown",
             openedPermissionMode: queryOptions.permissionMode,
