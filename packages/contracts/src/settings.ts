@@ -17,6 +17,7 @@ import {
   TrimmedString,
 } from "./baseSchemas.ts";
 import { UsageLimitSourceId } from "./usageLimitSourceId.ts";
+import { JiraSiteConfig, JiraSiteId } from "./jira.ts";
 import { EnvironmentMachineKind, ThreadEnvMode, WorktreeSubmodules } from "./environment.ts";
 import { KeybindingShortcut } from "./keybindings.ts";
 import {
@@ -1269,6 +1270,9 @@ export const ServerSettings = Schema.Struct({
   usageLimitSources: Schema.Record(UsageLimitSourceId, UsageLimitSourceConfig).pipe(
     Schema.withDecodingDefault(Effect.succeed({})),
   ),
+  jiraSites: Schema.Record(JiraSiteId, JiraSiteConfig).pipe(
+    Schema.withDecodingDefault(Effect.succeed({})),
+  ),
   /** Allows this server to read the Cursor CLI's macOS Keychain login for account usage. */
   cursorKeychainUsageEnabled: Schema.Boolean.pipe(
     Schema.withDecodingDefault(Effect.succeed(false)),
@@ -1534,6 +1538,7 @@ export const ServerSettingsPatch = Schema.Struct({
   usageLimitSources: Schema.optionalKey(
     Schema.Record(UsageLimitSourceId, Schema.NullOr(UsageLimitSourceConfig)),
   ),
+  jiraSites: Schema.optionalKey(Schema.Record(JiraSiteId, Schema.NullOr(JiraSiteConfig))),
   cursorKeychainUsageEnabled: Schema.optionalKey(Schema.Boolean),
   /** Each entry replaces one model's rates; `null` restores automatic pricing. */
   usagePriceOverrides: Schema.optionalKey(

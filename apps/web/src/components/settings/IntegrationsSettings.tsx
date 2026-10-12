@@ -118,6 +118,7 @@ import {
 } from "./settingsLayout";
 import { searchableSetting } from "./settingsSearch";
 import { ProjectDefaultsSettings } from "./ProjectDefaultsSettings";
+import { JiraSettings } from "./JiraSettings";
 import { useSettingsScope } from "./SettingsScopeContext";
 import { BrowserImportWizard, type WizardTarget } from "./BrowserImportWizard";
 import type { ImportOutcome } from "./browserImportWizard.logic";
@@ -1536,6 +1537,7 @@ export function IntegrationsSettingsPanel() {
     <SettingsPageContainer>
       {/* Server-authoritative agent access is scoped by the header selection;
           the preview defaults below are device-local and ignore it. */}
+      <JiraSettings />
       <ProjectDefaultsSettings category="integrations" />
       <SettingsSection id="browser" title="Browser">
         {previewDefaultsDisabled ? (

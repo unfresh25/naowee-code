@@ -637,6 +637,12 @@ export const SETTINGS_SEARCH_ITEMS = [
     searchTerms: ["allow disable enable open drive preview tools sessions project override"],
   },
   {
+    id: "jira-sites",
+    title: "Jira",
+    to: "/settings/integrations",
+    searchTerms: ["atlassian issues tickets tasks api token site workspace board linear"],
+  },
+  {
     id: "device-hosts",
     title: "Device hosts",
     to: "/settings/integrations",

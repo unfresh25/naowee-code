@@ -9,6 +9,7 @@ import {
   resolveProviderInstanceEnabled,
   ServerSettings,
   ServerSettingsPatch,
+  JiraSiteId,
 } from "@t3tools/contracts";
 import { createModelSelection } from "@t3tools/shared/model";
 import { assert, it } from "@effect/vitest";
@@ -1463,6 +1464,51 @@ it.layer(NodeServices.layer)("server settings", (it) => {
         assert.equal(
           ServerSettingsModule.redactServerSettingsForClient(cleared).bitbucket.accessToken,
           "",
+        );
+      }).pipe(Effect.provide(layerServerSettingsWithSecrets())),
+  );
+
+  it.effect(
+    "keeps Jira API tokens in the secret store per site and removes them with the site",
+    () =>
+      Effect.gen(function* () {
+        const serverSettings = yield* ServerSettingsModule.ServerSettingsService;
+        const secrets = yield* ServerSecretStore.ServerSecretStore;
+        const serverConfig = yield* ServerConfig.ServerConfig;
+        const fileSystem = yield* FileSystem.FileSystem;
+        const siteId = JiraSiteId.make("naowee");
+        const site = {
+          url: "https://naowee.atlassian.net",
+          email: "me@example.com",
+          apiToken: "jira-token",
+          enabled: true,
+        };
+
+        const saved = yield* serverSettings.updateSettings({ jiraSites: { [siteId]: site } });
+        assert.equal(saved.jiraSites[siteId]?.apiToken, "jira-token");
+        const raw = yield* fileSystem.readFileString(serverConfig.settingsPath);
+        assert.notInclude(raw, "jira-token");
+        assert.include(raw, "me@example.com");
+
+        const forClient =
+          ServerSettingsModule.redactServerSettingsForClient(saved).jiraSites[siteId];
+        assert.isDefined(forClient);
+        assert.notInclude(forClient!.apiToken, "jira-token");
+        assert.isAbove(forClient!.apiToken.length, 0);
+
+        yield* serverSettings.updateSettings({
+          jiraSites: { [siteId]: { ...forClient!, label: "Naowee" } },
+        });
+        const relabeled = (yield* serverSettings.getSettings).jiraSites[siteId];
+        assert.equal(relabeled?.label, "Naowee");
+        assert.equal(relabeled?.apiToken, "jira-token");
+
+        yield* serverSettings.updateSettings({ jiraSites: { [siteId]: null } });
+        assert.isUndefined((yield* serverSettings.getSettings).jiraSites[siteId]);
+        assert.isTrue(
+          Option.isNone(
+            yield* secrets.get(`jira-site-${Buffer.from("naowee").toString("base64url")}`),
+          ),
         );
       }).pipe(Effect.provide(layerServerSettingsWithSecrets())),
   );

@@ -199,6 +199,24 @@ import {
   PullRequestUpdateInput,
 } from "./pullRequest.ts";
 import {
+  JiraBoardInput,
+  JiraProjectBoards,
+  JiraTransitionsResult,
+  JiraCreateIssueInput,
+  JiraCreateIssueResult,
+  JiraCreateOptions,
+  JiraCreateOptionsInput,
+  JiraError,
+  JiraIssueDetail,
+  JiraIssueRef,
+  JiraListIssuesInput,
+  JiraListIssuesResult,
+  JiraSearchUsersInput,
+  JiraSearchUsersResult,
+  JiraSitesResult,
+  JiraUpdateIssueInput,
+} from "./jira.ts";
+import {
   RelayClientInstallFailedError,
   RelayClientInstallProgressEventSchema,
   RelayClientStatusSchema,
@@ -548,6 +566,16 @@ export const WS_METHODS = {
   pullRequestsRequestReviewers: "pullRequests.requestReviewers",
   pullRequestsLabelCandidates: "pullRequests.labelCandidates",
   pullRequestsSetLabels: "pullRequests.setLabels",
+
+  jiraSites: "jira.sites",
+  jiraListIssues: "jira.listIssues",
+  jiraIssue: "jira.issue",
+  jiraUpdateIssue: "jira.updateIssue",
+  jiraBoards: "jira.boards",
+  jiraTransitions: "jira.transitions",
+  jiraSearchUsers: "jira.searchUsers",
+  jiraCreateOptions: "jira.createOptions",
+  jiraCreateIssue: "jira.createIssue",
 
   // Source control methods
   sourceControlLookupRepository: "sourceControl.lookupRepository",
@@ -1121,6 +1149,62 @@ const WsPullRequestsSetLabelsRpc = Rpc.make(WS_METHODS.pullRequestsSetLabels, {
   payload: PullRequestLabelChangeInput,
   success: Schema.Void,
   error: PullRequestRpcError,
+});
+
+const JiraRpcError = Schema.Union([JiraError, EnvironmentAuthorizationError]);
+
+const WsJiraSitesRpc = Rpc.make(WS_METHODS.jiraSites, {
+  payload: Schema.Struct({}),
+  success: JiraSitesResult,
+  error: JiraRpcError,
+});
+
+const WsJiraListIssuesRpc = Rpc.make(WS_METHODS.jiraListIssues, {
+  payload: JiraListIssuesInput,
+  success: JiraListIssuesResult,
+  error: JiraRpcError,
+});
+
+const WsJiraIssueRpc = Rpc.make(WS_METHODS.jiraIssue, {
+  payload: JiraIssueRef,
+  success: JiraIssueDetail,
+  error: JiraRpcError,
+});
+
+const WsJiraUpdateIssueRpc = Rpc.make(WS_METHODS.jiraUpdateIssue, {
+  payload: JiraUpdateIssueInput,
+  success: Schema.Void,
+  error: JiraRpcError,
+});
+
+const WsJiraTransitionsRpc = Rpc.make(WS_METHODS.jiraTransitions, {
+  payload: JiraIssueRef,
+  success: JiraTransitionsResult,
+  error: JiraRpcError,
+});
+
+const WsJiraBoardsRpc = Rpc.make(WS_METHODS.jiraBoards, {
+  payload: JiraBoardInput,
+  success: JiraProjectBoards,
+  error: JiraRpcError,
+});
+
+const WsJiraSearchUsersRpc = Rpc.make(WS_METHODS.jiraSearchUsers, {
+  payload: JiraSearchUsersInput,
+  success: JiraSearchUsersResult,
+  error: JiraRpcError,
+});
+
+const WsJiraCreateOptionsRpc = Rpc.make(WS_METHODS.jiraCreateOptions, {
+  payload: JiraCreateOptionsInput,
+  success: JiraCreateOptions,
+  error: JiraRpcError,
+});
+
+const WsJiraCreateIssueRpc = Rpc.make(WS_METHODS.jiraCreateIssue, {
+  payload: JiraCreateIssueInput,
+  success: JiraCreateIssueResult,
+  error: JiraRpcError,
 });
 
 const WsSourceControlLookupRepositoryRpc = Rpc.make(WS_METHODS.sourceControlLookupRepository, {
@@ -1919,6 +2003,15 @@ export const WsRpcGroup = RpcGroup.make(
   WsPullRequestsRequestReviewersRpc,
   WsPullRequestsLabelCandidatesRpc,
   WsPullRequestsSetLabelsRpc,
+  WsJiraSitesRpc,
+  WsJiraListIssuesRpc,
+  WsJiraIssueRpc,
+  WsJiraUpdateIssueRpc,
+  WsJiraBoardsRpc,
+  WsJiraTransitionsRpc,
+  WsJiraSearchUsersRpc,
+  WsJiraCreateOptionsRpc,
+  WsJiraCreateIssueRpc,
   WsSourceControlLookupRepositoryRpc,
   WsSourceControlCloneRepositoryRpc,
   WsSourceControlPublishRepositoryRpc,

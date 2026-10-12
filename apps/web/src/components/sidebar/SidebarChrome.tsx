@@ -29,6 +29,7 @@ import { SidebarThreadUndoNotice } from "./SidebarThreadUndoNotice";
 import { SidebarProviderUpdatePill } from "./SidebarProviderUpdatePill";
 import { SidebarUpdateArchitectureWarning, SidebarUpdatePill } from "./SidebarUpdatePill";
 import { PullRequestGlyph } from "~/components/pullRequest/pullRequestIcons";
+import { JiraLogoIcon } from "~/components/jira/jiraPresentation";
 
 export const SidebarChromeHeader = memo(function SidebarChromeHeader({
   isElectron,
@@ -183,6 +184,10 @@ export const SidebarUtilityMenu = memo(function SidebarUtilityMenu() {
     closeMobileSidebar();
     void navigate({ to: "/settings" });
   }, [closeMobileSidebar, navigate]);
+  const handleJiraClick = useCallback(() => {
+    closeMobileSidebar();
+    void navigate({ to: "/jira" });
+  }, [closeMobileSidebar, navigate]);
 
   const handleUsageClick = useCallback(() => {
     if (isMobile) {
@@ -219,6 +224,11 @@ export const SidebarUtilityMenu = memo(function SidebarUtilityMenu() {
               onClick={handlePullRequestsClick}
             />
           ) : null}
+          <SidebarUtilityItem
+            icon={<JiraLogoIcon className="size-3.5" />}
+            label="Jira"
+            onClick={handleJiraClick}
+          />
           <SidebarUtilityItem
             icon={<ChartNoAxesColumnIcon />}
             label="Usage"

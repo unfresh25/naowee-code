@@ -133,6 +133,26 @@ describe("RPC authorization scopes", () => {
     );
   });
 
+  it("lets readers browse Jira issues but requires operate scope to change or create them", () => {
+    for (const method of [
+      WS_METHODS.jiraSites,
+      WS_METHODS.jiraListIssues,
+      WS_METHODS.jiraIssue,
+      WS_METHODS.jiraBoards,
+      WS_METHODS.jiraTransitions,
+      WS_METHODS.jiraSearchUsers,
+      WS_METHODS.jiraCreateOptions,
+    ]) {
+      expect(requiredScopeForRpcMethod(method)).toBe(AuthOrchestrationReadScope);
+    }
+    expect(requiredScopeForRpcMethod(WS_METHODS.jiraUpdateIssue)).toBe(
+      AuthOrchestrationOperateScope,
+    );
+    expect(requiredScopeForRpcMethod(WS_METHODS.jiraCreateIssue)).toBe(
+      AuthOrchestrationOperateScope,
+    );
+  });
+
   it("separates viewing pull request file progress from writing it", () => {
     expect(requiredScopeForRpcMethod(WS_METHODS.pullRequestsFilesViewed)).toBe(
       AuthOrchestrationReadScope,

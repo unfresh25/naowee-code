@@ -177,6 +177,7 @@ import * as ServerLifecycleEvents from "./serverLifecycleEvents.ts";
 import * as ServerRuntimeStartup from "./serverRuntimeStartup.ts";
 import * as ServerSettings from "./serverSettings.ts";
 import * as TurnComplexityClassifier from "./textGeneration/TurnComplexityClassifier.ts";
+import * as JiraService from "./jira/JiraService.ts";
 import * as TerminalManager from "./terminal/Manager.ts";
 import { withTerminalOutputWindow } from "./terminal/OutputProtocol.ts";
 import * as PreviewAutomationBroker from "./mcp/PreviewAutomationBroker.ts";
@@ -1285,6 +1286,7 @@ const layerWsRpc = (
       const lifecycleEvents = yield* ServerLifecycleEvents.ServerLifecycleEvents;
       const serverSettings = yield* ServerSettings.ServerSettingsService;
       const turnComplexityClassifier = yield* TurnComplexityClassifier.TurnComplexityClassifier;
+      const jira = yield* JiraService.JiraService;
       const startup = yield* ServerRuntimeStartup.ServerRuntimeStartup;
       const workspaceEntries = yield* WorkspaceEntries.WorkspaceEntries;
       const workspaceFileSystem = yield* WorkspaceFileSystem.WorkspaceFileSystem;
@@ -2465,6 +2467,15 @@ const layerWsRpc = (
                 Effect.forkScoped,
               ),
           ),
+        [WS_METHODS.jiraSites]: () => jira.sites,
+        [WS_METHODS.jiraListIssues]: (input) => jira.listIssues(input),
+        [WS_METHODS.jiraIssue]: (input) => jira.issue(input),
+        [WS_METHODS.jiraBoards]: (input) => jira.boards(input),
+        [WS_METHODS.jiraTransitions]: (input) => jira.transitions(input),
+        [WS_METHODS.jiraUpdateIssue]: (input) => jira.updateIssue(input),
+        [WS_METHODS.jiraSearchUsers]: (input) => jira.searchUsers(input),
+        [WS_METHODS.jiraCreateOptions]: (input) => jira.createOptions(input),
+        [WS_METHODS.jiraCreateIssue]: (input) => jira.createIssue(input),
         [WS_METHODS.pullRequestsList]: (input) => pullRequests.list(input),
         [WS_METHODS.pullRequestsListStats]: (input) => pullRequests.listStats(input),
         [WS_METHODS.pullRequestsRoutingIdentity]: (input) => pullRequests.routingIdentity(input),

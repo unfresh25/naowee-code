@@ -22,6 +22,7 @@ import {
   type ProviderInstanceConfig,
   type ProviderInstanceEnvironmentVariable,
   type UsageLimitSourceConfig,
+  type JiraSiteConfig,
   type ProviderInstanceMutation,
   defaultInstanceIdForDriver,
   isProviderDriverKind,
@@ -157,6 +158,10 @@ function usageLimitSourceSecretName(sourceId: string): string {
   return `usage-limit-source-${Buffer.from(sourceId, "utf8").toString("base64url")}`;
 }
 
+function jiraSiteSecretName(siteId: string): string {
+  return `jira-site-${Buffer.from(siteId, "utf8").toString("base64url")}`;
+}
+
 const BITBUCKET_SECRET_NAMES = {
   accessToken: "bitbucket-access-token",
   apiToken: "bitbucket-api-token",
@@ -217,7 +222,13 @@ export function redactServerSettingsForClient(settings: ServerSettings): ServerS
       Object.entries(settings.github.tokens).map(([host, token]) => [host, redactSecret(token)]),
     ),
   };
-  return { ...settings, providerInstances, usageLimitSources, bitbucket, github };
+  const jiraSites = Object.fromEntries(
+    Object.entries(settings.jiraSites).map(([id, site]) => [
+      id,
+      { ...site, apiToken: redactSecret(site.apiToken) },
+    ]),
+  );
+  return { ...settings, providerInstances, usageLimitSources, jiraSites, bitbucket, github };
 }
 
 export function applyProviderInstanceMutation(
@@ -933,6 +944,24 @@ const make = Effect.gen(function* () {
           managementKey: Option.isSome(secret) ? textDecoder.decode(secret.value) : "",
         };
       }
+      const jiraSites: Record<string, JiraSiteConfig> = {};
+      for (const [siteId, site] of Object.entries(settings.jiraSites)) {
+        if (site.apiToken !== SECRET_REDACTED) {
+          jiraSites[siteId] = site;
+          continue;
+        }
+        const secret = yield* secretStore
+          .get(jiraSiteSecretName(siteId))
+          .pipe(
+            Effect.mapError(
+              (cause) => new ServerSettingsError({ settingsPath, operation: "read-secret", cause }),
+            ),
+          );
+        jiraSites[siteId] = {
+          ...site,
+          apiToken: Option.isSome(secret) ? textDecoder.decode(secret.value) : "",
+        };
+      }
       const bitbucket = { ...settings.bitbucket };
       for (const field of BITBUCKET_SECRET_FIELDS) {
         if (bitbucket[field] !== SECRET_REDACTED) continue;
@@ -964,6 +993,7 @@ const make = Effect.gen(function* () {
         ...settings,
         providerInstances: providerInstances as ServerSettings["providerInstances"],
         usageLimitSources: usageLimitSources as ServerSettings["usageLimitSources"],
+        jiraSites: jiraSites as ServerSettings["jiraSites"],
         bitbucket,
         github: { ...settings.github, tokens },
       };
@@ -1107,6 +1137,30 @@ const make = Effect.gen(function* () {
         });
       }
 
+      const jiraSites: Record<string, JiraSiteConfig> = {};
+      for (const [siteId, site] of Object.entries(next.jiraSites)) {
+        const secretName = jiraSiteSecretName(siteId);
+        if (site.apiToken === SECRET_REDACTED) {
+          jiraSites[siteId] = site;
+          continue;
+        }
+        if (site.apiToken.length === 0) {
+          changes.push({ kind: "remove", secretName, operation: "remove-secret" });
+          jiraSites[siteId] = site;
+          continue;
+        }
+        changes.push({ kind: "write", secretName, value: textEncoder.encode(site.apiToken) });
+        jiraSites[siteId] = { ...site, apiToken: SECRET_REDACTED };
+      }
+      for (const siteId of Object.keys(current.jiraSites)) {
+        if (siteId in next.jiraSites) continue;
+        changes.push({
+          kind: "remove",
+          secretName: jiraSiteSecretName(siteId),
+          operation: "remove-stale-secret",
+        });
+      }
+
       const bitbucket = { ...next.bitbucket };
       for (const field of BITBUCKET_SECRET_FIELDS) {
         let value = bitbucket[field];
@@ -1164,6 +1218,7 @@ const make = Effect.gen(function* () {
           ...next,
           providerInstances: providerInstances as ServerSettings["providerInstances"],
           usageLimitSources: usageLimitSources as ServerSettings["usageLimitSources"],
+          jiraSites: jiraSites as ServerSettings["jiraSites"],
           bitbucket,
           github: { ...next.github, tokens },
         },
