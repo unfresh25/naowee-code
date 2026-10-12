@@ -2428,7 +2428,9 @@ export const ChatComposer = memo(function ChatComposer(props: ChatComposerProps)
         instanceId: selectedInstanceId,
         complexity,
         current: activeThreadModelSelection,
-        threadStarted: activeThread?.latestRun != null,
+        threadStarted:
+          activeThread !== undefined &&
+          (activeThread.latestRun !== null || activeThread.itemCount > 0),
         threadBusy: threadRuntimeIsActive(activeThread?.runtime),
         availableModels: selectedProviderModels.map((model) => model.slug),
         tierOverrides: settings.autoModelRoutingTiers[selectedProvider],

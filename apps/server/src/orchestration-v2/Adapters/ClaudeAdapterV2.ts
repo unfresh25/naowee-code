@@ -1,3 +1,4 @@
+import * as NodeOS from "node:os";
 import { makeProviderTextDeltaCoalescer } from "./ProviderTextDeltaCoalescer.ts";
 import {
   dynamicToolTitle,
@@ -1209,6 +1210,28 @@ const isTerminalProviderTurn = (turn: OrchestrationV2ProviderTurn): boolean =>
   turn.status === "interrupted" ||
   turn.status === "failed" ||
   turn.status === "cancelled";
+
+const CLAUDE_NATIVE_SESSION_FILE_ID = /^[\w-]+$/;
+
+const claudeNativeSessionPersisted = (input: {
+  readonly fileSystem: FileSystem.FileSystem;
+  readonly path: Path.Path;
+  readonly configDir: string | undefined;
+  readonly nativeThreadId: string;
+}) =>
+  Effect.gen(function* () {
+    if (!CLAUDE_NATIVE_SESSION_FILE_ID.test(input.nativeThreadId)) return false;
+    const configured = input.configDir?.trim();
+    const configDir = configured
+      ? input.path.resolve(expandHomePath(configured))
+      : input.path.join(NodeOS.homedir(), ".claude");
+    const projectsDir = input.path.join(configDir, "projects");
+    for (const project of yield* input.fileSystem.readDirectory(projectsDir)) {
+      const transcript = input.path.join(projectsDir, project, `${input.nativeThreadId}.jsonl`);
+      if (yield* input.fileSystem.exists(transcript)) return true;
+    }
+    return false;
+  }).pipe(Effect.orElseSucceed(() => false));
 
 const getNativeConversationHeadId = Effect.fnUntraced(function* (
   providerThread: OrchestrationV2ProviderThread,
@@ -7405,8 +7428,21 @@ export const makeClaudeAdapterV2 = Effect.fn("makeClaudeAdapterV2")(function* (
           // a new native id, which must be created before it can be resumed.
           const hasPersistedProviderTurn =
             turnInput.nativeThreadHasTurns ?? turnInput.providerTurnOrdinal > 1;
+          const nativeSessionPersisted =
+            resumeSessionAt === undefined &&
+            !openedWithResume &&
+            !hasPersistedProviderTurn &&
+            (yield* claudeNativeSessionPersisted({
+              fileSystem,
+              path,
+              configDir: adapterOptions.environment.CLAUDE_CONFIG_DIR,
+              nativeThreadId,
+            }));
           const shouldResume =
-            resumeSessionAt !== undefined || openedWithResume || hasPersistedProviderTurn;
+            resumeSessionAt !== undefined ||
+            openedWithResume ||
+            hasPersistedProviderTurn ||
+            nativeSessionPersisted;
           const queryOptions = makeClaudeQueryOptions({
             modelSelection: turnInput.modelSelection,
             nativeThreadId,
