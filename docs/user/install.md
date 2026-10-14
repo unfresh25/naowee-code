@@ -61,20 +61,22 @@ update it with `git pull` and a rebuild.
 
 ## Desktop app
 
-Download a release from [GitHub Releases](https://github.com/pingdotgg/t3code/releases),
-or use a package manager:
+Download the installer for your system from the
+[Naowee Code releases](https://github.com/unfresh25/t3code/releases):
 
-| Platform           | Install                            |
-| ------------------ | ---------------------------------- |
-| Windows            | `winget install T3Tools.T3Code`    |
-| macOS              | `brew install --cask t3-code`      |
-| Debian, Ubuntu     | `sudo apt install ./T3-Code-*.deb` |
-| Arch Linux         | `yay -S t3code-bin`                |
-| Arch Linux nightly | `yay -S t3code-nightly-bin`        |
+| Platform              | File                                    | First launch                                                                                            |
+| --------------------- | --------------------------------------- | ------------------------------------------------------------------------------------------------------- |
+| macOS (Apple Silicon) | `Naowee-Code-<version>-arm64.dmg`       | Drag the app to Applications, then run `xattr -dr com.apple.quarantine "/Applications/Naowee Code.app"` |
+| macOS (Intel)         | `Naowee-Code-<version>-x64.dmg`         | Same as Apple Silicon                                                                                   |
+| Windows               | `Naowee-Code-<version>-x64.exe`         | If SmartScreen warns, choose **More info**, then **Run anyway**                                         |
+| Linux                 | `Naowee-Code-<version>-x86_64.AppImage` | `chmod +x` the file, then run it                                                                        |
 
-The `.deb` updates itself like the other desktop builds. It asks for your
-password to install each update. If your desktop has no password prompt, the
-update fails. Download the new `.deb` and install it the same way.
+The builds are not signed, which is why each system asks once before opening them. Windows and
+Linux update themselves from the releases page. On macOS, download the new `.dmg` and replace the
+app.
+
+Naowee Code keeps its data in `~/.naowee`. Sign in to Claude Code or Codex on the machine before
+starting your first thread.
 
 ### The `naowee` command
 

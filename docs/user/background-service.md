@@ -37,7 +37,7 @@ installing one.
 
 `naowee uninstall` removes the background service, the `naowee` launcher, and the
 downloaded versions after showing you the list and asking once. Your projects,
-threads, and settings under `~/.t3/userdata` are kept. Pass `--yes` from a
+threads, and settings under `~/.naowee/userdata` are kept. Pass `--yes` from a
 script.
 
 ## Platform support
