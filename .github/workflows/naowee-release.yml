@@ -177,12 +177,16 @@ jobs:
           merge-multiple: true
           path: dist
 
-      - name: Create draft release
+      - name: Create or update the release
         shell: bash
         run: |
           set -euo pipefail
           tag="naowee-v$VERSION"
           ls -la dist
+          if gh release view "$tag" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release upload "$tag" dist/* --repo "$GITHUB_REPOSITORY" --clobber
+            exit 0
+          fi
           gh release create "$tag" dist/* \
             --repo "$GITHUB_REPOSITORY" \
             --target "$GITHUB_SHA" \
