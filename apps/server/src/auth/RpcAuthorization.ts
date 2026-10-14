@@ -123,6 +123,8 @@ export const RPC_REQUIRED_SCOPES = {
   [WS_METHODS.jiraIssue]: AuthOrchestrationReadScope,
   [WS_METHODS.jiraBoards]: AuthOrchestrationReadScope,
   [WS_METHODS.jiraTransitions]: AuthOrchestrationReadScope,
+  [WS_METHODS.briefStatus]: AuthOrchestrationReadScope,
+  [WS_METHODS.briefArtwork]: AuthOrchestrationReadScope,
   [WS_METHODS.jiraSearchUsers]: AuthOrchestrationReadScope,
   [WS_METHODS.jiraCreateOptions]: AuthOrchestrationReadScope,
   [WS_METHODS.pullRequestsList]: AuthOrchestrationReadScope,

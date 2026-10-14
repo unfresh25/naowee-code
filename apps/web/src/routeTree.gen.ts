@@ -34,6 +34,7 @@ import { Route as SettingsAppearanceRouteImport } from './routes/settings.appear
 import { Route as ProjectsProjectKeyRouteImport } from './routes/projects.$projectKey'
 import { Route as ChatPullRequestsRouteImport } from './routes/_chat.pull-requests'
 import { Route as ChatJiraRouteImport } from './routes/_chat.jira'
+import { Route as ChatBriefRouteImport } from './routes/_chat.brief'
 import { Route as ChatDraftDraftIdRouteImport } from './routes/_chat.draft.$draftId'
 import { Route as ChatEnvironmentIdThreadIdRouteImport } from './routes/_chat.$environmentId.$threadId'
 
@@ -162,6 +163,11 @@ const ChatJiraRoute = ChatJiraRouteImport.update({
   path: '/jira',
   getParentRoute: () => ChatRoute,
 } as any)
+const ChatBriefRoute = ChatBriefRouteImport.update({
+  id: '/brief',
+  path: '/brief',
+  getParentRoute: () => ChatRoute,
+} as any)
 const ChatDraftDraftIdRoute = ChatDraftDraftIdRouteImport.update({
   id: '/draft/$draftId',
   path: '/draft/$draftId',
@@ -182,6 +188,7 @@ export interface FileRoutesByFullPath {
   '/settings': typeof SettingsRouteWithChildren
   '/usage': typeof UsageRoute
   '/welcome': typeof WelcomeRoute
+  '/brief': typeof ChatBriefRoute
   '/jira': typeof ChatJiraRoute
   '/pull-requests': typeof ChatPullRequestsRoute
   '/projects/$projectKey': typeof ProjectsProjectKeyRoute
@@ -209,6 +216,7 @@ export interface FileRoutesByTo {
   '/settings': typeof SettingsRouteWithChildren
   '/usage': typeof UsageRoute
   '/welcome': typeof WelcomeRoute
+  '/brief': typeof ChatBriefRoute
   '/jira': typeof ChatJiraRoute
   '/pull-requests': typeof ChatPullRequestsRoute
   '/projects/$projectKey': typeof ProjectsProjectKeyRoute
@@ -239,6 +247,7 @@ export interface FileRoutesById {
   '/settings': typeof SettingsRouteWithChildren
   '/usage': typeof UsageRoute
   '/welcome': typeof WelcomeRoute
+  '/_chat/brief': typeof ChatBriefRoute
   '/_chat/jira': typeof ChatJiraRoute
   '/_chat/pull-requests': typeof ChatPullRequestsRoute
   '/projects/$projectKey': typeof ProjectsProjectKeyRoute
@@ -270,6 +279,7 @@ export interface FileRouteTypes {
     | '/settings'
     | '/usage'
     | '/welcome'
+    | '/brief'
     | '/jira'
     | '/pull-requests'
     | '/projects/$projectKey'
@@ -297,6 +307,7 @@ export interface FileRouteTypes {
     | '/settings'
     | '/usage'
     | '/welcome'
+    | '/brief'
     | '/jira'
     | '/pull-requests'
     | '/projects/$projectKey'
@@ -326,6 +337,7 @@ export interface FileRouteTypes {
     | '/settings'
     | '/usage'
     | '/welcome'
+    | '/_chat/brief'
     | '/_chat/jira'
     | '/_chat/pull-requests'
     | '/projects/$projectKey'
@@ -536,6 +548,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ChatJiraRouteImport
       parentRoute: typeof ChatRoute
     }
+    '/_chat/brief': {
+      id: '/_chat/brief'
+      path: '/brief'
+      fullPath: '/brief'
+      preLoaderRoute: typeof ChatBriefRouteImport
+      parentRoute: typeof ChatRoute
+    }
     '/_chat/draft/$draftId': {
       id: '/_chat/draft/$draftId'
       path: '/draft/$draftId'
@@ -554,6 +573,7 @@ declare module '@tanstack/react-router' {
 }
 
 interface ChatRouteChildren {
+  ChatBriefRoute: typeof ChatBriefRoute
   ChatJiraRoute: typeof ChatJiraRoute
   ChatPullRequestsRoute: typeof ChatPullRequestsRoute
   ChatIndexRoute: typeof ChatIndexRoute
@@ -562,6 +582,7 @@ interface ChatRouteChildren {
 }
 
 const ChatRouteChildren: ChatRouteChildren = {
+  ChatBriefRoute: ChatBriefRoute,
   ChatJiraRoute: ChatJiraRoute,
   ChatPullRequestsRoute: ChatPullRequestsRoute,
   ChatIndexRoute: ChatIndexRoute,

@@ -36,6 +36,7 @@ export const CLIENT_GUARDED_RPC_SCOPES = {
 
   [WS_METHODS.jiraUpdateIssue]: AuthOrchestrationOperateScope,
   [WS_METHODS.jiraCreateIssue]: AuthOrchestrationOperateScope,
+  [WS_METHODS.briefGenerate]: AuthOrchestrationOperateScope,
 
   [WS_METHODS.scheduledTasksUpsert]: AuthOrchestrationOperateScope,
   [WS_METHODS.scheduledTasksSetEnabled]: AuthOrchestrationOperateScope,

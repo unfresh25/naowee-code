@@ -60,6 +60,7 @@ import * as ForgejoCli from "./sourceControl/ForgejoCli.ts";
 import * as TextGeneration from "./textGeneration/TextGeneration.ts";
 import * as TurnComplexityClassifier from "./textGeneration/TurnComplexityClassifier.ts";
 import * as JiraService from "./jira/JiraService.ts";
+import * as DailyBriefService from "./brief/DailyBriefService.ts";
 import * as ProviderInstanceRegistryHydration from "./provider/ProviderInstanceRegistryHydration.ts";
 import * as TerminalManager from "./terminal/Manager.ts";
 import * as McpHttpServer from "./mcp/McpHttpServer.ts";
@@ -568,6 +569,10 @@ const layerRuntimeCoreDependenciesBase = Layer.mergeAll(
     Layer.provide(ProjectionStoreV2.layer),
   ),
   layerThreadPullRequestWorker,
+  DailyBriefService.layer.pipe(
+    Layer.provide(layerPullRequestService),
+    Layer.provide(layerGitWorkflow),
+  ),
   Layer.effectDiscard(
     Effect.gen(function* () {
       const service = yield* PullRequestSyncReactor.PullRequestSyncReactor;

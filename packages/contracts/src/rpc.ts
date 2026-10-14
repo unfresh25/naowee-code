@@ -217,6 +217,12 @@ import {
   JiraUpdateIssueInput,
 } from "./jira.ts";
 import {
+  DailyBriefArtworkImage,
+  DailyBriefDate,
+  DailyBriefError,
+  DailyBriefStatus,
+} from "./brief.ts";
+import {
   RelayClientInstallFailedError,
   RelayClientInstallProgressEventSchema,
   RelayClientStatusSchema,
@@ -573,6 +579,10 @@ export const WS_METHODS = {
   jiraUpdateIssue: "jira.updateIssue",
   jiraBoards: "jira.boards",
   jiraTransitions: "jira.transitions",
+
+  briefStatus: "brief.status",
+  briefGenerate: "brief.generate",
+  briefArtwork: "brief.artwork",
   jiraSearchUsers: "jira.searchUsers",
   jiraCreateOptions: "jira.createOptions",
   jiraCreateIssue: "jira.createIssue",
@@ -1181,6 +1191,24 @@ const WsJiraTransitionsRpc = Rpc.make(WS_METHODS.jiraTransitions, {
   payload: JiraIssueRef,
   success: JiraTransitionsResult,
   error: JiraRpcError,
+});
+
+const WsBriefStatusRpc = Rpc.make(WS_METHODS.briefStatus, {
+  payload: Schema.Struct({}),
+  success: DailyBriefStatus,
+  error: Schema.Union([DailyBriefError, EnvironmentAuthorizationError]),
+});
+
+const WsBriefGenerateRpc = Rpc.make(WS_METHODS.briefGenerate, {
+  payload: Schema.Struct({}),
+  success: Schema.Void,
+  error: Schema.Union([DailyBriefError, EnvironmentAuthorizationError]),
+});
+
+const WsBriefArtworkRpc = Rpc.make(WS_METHODS.briefArtwork, {
+  payload: Schema.Struct({ date: DailyBriefDate }),
+  success: DailyBriefArtworkImage,
+  error: Schema.Union([DailyBriefError, EnvironmentAuthorizationError]),
 });
 
 const WsJiraBoardsRpc = Rpc.make(WS_METHODS.jiraBoards, {
@@ -2009,6 +2037,9 @@ export const WsRpcGroup = RpcGroup.make(
   WsJiraUpdateIssueRpc,
   WsJiraBoardsRpc,
   WsJiraTransitionsRpc,
+  WsBriefStatusRpc,
+  WsBriefGenerateRpc,
+  WsBriefArtworkRpc,
   WsJiraSearchUsersRpc,
   WsJiraCreateOptionsRpc,
   WsJiraCreateIssueRpc,

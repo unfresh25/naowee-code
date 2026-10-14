@@ -18,6 +18,7 @@ import {
 } from "./baseSchemas.ts";
 import { UsageLimitSourceId } from "./usageLimitSourceId.ts";
 import { JiraSiteConfig, JiraSiteId } from "./jira.ts";
+import { DailyBriefLanguage, DailyBriefSettings, DailyBriefTime } from "./brief.ts";
 import { EnvironmentMachineKind, ThreadEnvMode, WorktreeSubmodules } from "./environment.ts";
 import { KeybindingShortcut } from "./keybindings.ts";
 import {
@@ -1273,6 +1274,7 @@ export const ServerSettings = Schema.Struct({
   jiraSites: Schema.Record(JiraSiteId, JiraSiteConfig).pipe(
     Schema.withDecodingDefault(Effect.succeed({})),
   ),
+  dailyBrief: DailyBriefSettings.pipe(Schema.withDecodingDefault(Effect.succeed({}))),
   /** Allows this server to read the Cursor CLI's macOS Keychain login for account usage. */
   cursorKeychainUsageEnabled: Schema.Boolean.pipe(
     Schema.withDecodingDefault(Effect.succeed(false)),
@@ -1539,6 +1541,14 @@ export const ServerSettingsPatch = Schema.Struct({
     Schema.Record(UsageLimitSourceId, Schema.NullOr(UsageLimitSourceConfig)),
   ),
   jiraSites: Schema.optionalKey(Schema.Record(JiraSiteId, Schema.NullOr(JiraSiteConfig))),
+  dailyBrief: Schema.optionalKey(
+    Schema.Struct({
+      enabled: Schema.optionalKey(Schema.Boolean),
+      time: Schema.optionalKey(DailyBriefTime),
+      language: Schema.optionalKey(DailyBriefLanguage),
+      instructions: Schema.optionalKey(TrimmedString),
+    }),
+  ),
   cursorKeychainUsageEnabled: Schema.optionalKey(Schema.Boolean),
   /** Each entry replaces one model's rates; `null` restores automatic pricing. */
   usagePriceOverrides: Schema.optionalKey(

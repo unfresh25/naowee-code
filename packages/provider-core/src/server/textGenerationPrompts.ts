@@ -9,7 +9,11 @@
 import * as Schema from "effect/Schema";
 import * as Effect from "effect/Effect";
 import { limitTitleMessage } from "./threadTitleContext.ts";
-import type { BranchNamingOptions, ChatAttachment } from "@t3tools/contracts";
+import {
+  type BranchNamingOptions,
+  type ChatAttachment,
+  DailyBriefContent,
+} from "@t3tools/contracts";
 
 import { limitSection } from "./textGenerationUtils.ts";
 import type { TextGenerationPolicy } from "@t3tools/provider-core/server/textGenerationPolicy";
@@ -376,4 +380,53 @@ export function buildTurnComplexityPrompt(input: TurnComplexityPromptInput) {
   });
 
   return { prompt, outputSchema };
+}
+
+export interface DailyBriefPromptInput {
+  readonly today: string;
+  readonly since: string;
+  readonly timeZone: string;
+  readonly language: "es" | "en";
+  readonly userName: string | null;
+  readonly userEmail: string | null;
+  readonly instructions: string;
+  readonly jira: string;
+  readonly pullRequests: string;
+}
+
+export function buildDailyBriefPrompt(input: DailyBriefPromptInput) {
+  const language = input.language === "es" ? "Spanish" : "English";
+  const prompt = [
+    "You are the user's chief of staff. Write their morning brief: what to push forward today, the few to-dos that matter, what changed since the last brief, and today's meetings.",
+    "",
+    `Today is ${input.today} (${input.timeZone}). Look at activity since ${input.since}.`,
+    `The user is ${input.userName ?? "the account owner"}${input.userEmail ? ` <${input.userEmail}>` : ""}.`,
+    "",
+    "Gather context with your read-only tools before writing:",
+    "- Slack: search messages that mention the user, their direct messages, and threads they took part in since the last brief (slack_search_public_and_private with queries such as `to:me`, `@me` and the user's name). Open the threads that look actionable.",
+    "- Gmail: search recent important mail (search_threads with queries such as `newer_than:2d -category:promotions -category:social -category:updates`) and today's calendar invitations (`invite OR invitación OR invitation newer_than:14d`). Read the threads that ask something of the user.",
+    "- Google Calendar, if its tools are available: list today's events.",
+    "- Jira and pull requests are listed below; use the Atlassian tools only to open an issue for detail.",
+    "Never send, post, edit, label or delete anything. If a source fails or has no tools, skip it and name it in unavailableSources.",
+    "",
+    "Jira issues assigned to the user (open, plus those finished recently):",
+    input.jira.trim().length > 0 ? input.jira : "(none)",
+    "",
+    "Pull requests in the user's projects:",
+    input.pullRequests.trim().length > 0 ? input.pullRequests : "(none)",
+    ...(input.instructions.trim().length > 0
+      ? ["", "The user's standing instructions for this brief:", input.instructions.trim()]
+      : []),
+    "",
+    "Write the brief:",
+    `- Write every field in ${language}. Keep names, issue keys and product terms as they are.`,
+    "- tagline: one short, warm sentence about the shape of the day, in the voice of a thoughtful editor.",
+    "- focus: the single most valuable thing to move forward today, or null when nothing stands out. detail says why now; draft is a concrete first step the user can start from, such as an outline, the questions to answer or the order of work, in at most 6 short lines.",
+    "- todos: at most 4 concrete actions for today, most important first. Each title starts with a verb.",
+    "- updates: at most 5 things that changed and that the user should know, such as decisions, merges, answers or blockers, newest first. topic is a 1-3 word area such as a team, project or channel.",
+    "- events: today's meetings in time order, with start and end as HH:MM in 24-hour local time. detail says what to expect or prepare. Leave it empty when there are none.",
+    "- detail fields are one or two sentences, specific and factual: who, what, which issue. Never invent facts, people or links.",
+    "- sources: every item lists where it came from, with the kind, a short label such as `DEP-453`, `#data-team` or the mail subject, and the url when you have one.",
+  ].join("\n");
+  return { prompt, outputSchema: DailyBriefContent };
 }

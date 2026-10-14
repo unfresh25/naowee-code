@@ -637,6 +637,12 @@ export const SETTINGS_SEARCH_ITEMS = [
     searchTerms: ["allow disable enable open drive preview tools sessions project override"],
   },
   {
+    id: "daily-brief",
+    title: "Daily brief",
+    to: "/settings/integrations",
+    searchTerms: ["today morning summary digest slack gmail calendar jira brief dia"],
+  },
+  {
     id: "jira-sites",
     title: "Jira",
     to: "/settings/integrations",

@@ -22,8 +22,15 @@ if (argv.includes("--dangerously-skip-permissions")) {
 if (!argv.includes("--disable-slash-commands")) {
   fail("text generation must disable skills", 8);
 }
-if (!argv.includes("--strict-mcp-config")) {
+const allowedToolsIndex = argv.indexOf("--allowedTools");
+if (allowedToolsIndex === -1 && !argv.includes("--strict-mcp-config")) {
   fail("text generation must not load configured MCP servers", 9);
+}
+if (
+  allowedToolsIndex !== -1 &&
+  !argv[allowedToolsIndex + 1].split(",").every((tool) => tool.startsWith("mcp__claude_ai_"))
+) {
+  fail("text generation may only allow connector tools", 9);
 }
 const settingsIndex = argv.indexOf("--settings");
 if (settingsIndex === -1 || JSON.parse(argv[settingsIndex + 1]).disableAllHooks !== true) {

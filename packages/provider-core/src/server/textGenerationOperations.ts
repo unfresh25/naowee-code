@@ -16,6 +16,7 @@ import { extractJsonObject } from "@t3tools/shared/schemaJson";
 import type { ProviderTextGeneration } from "./textGeneration.ts";
 import {
   buildBranchNamePrompt,
+  buildDailyBriefPrompt,
   buildCommitMessagePrompt,
   buildPrContentPrompt,
   buildThreadTitlePrompt,
@@ -38,6 +39,8 @@ export interface Request<S extends Schema.Top> {
   readonly modelSelection: ModelSelection;
   /** The user's attachments, already listed in the prompt. Providers that accept images send them. */
   readonly attachments?: ReadonlyArray<ChatAttachment> | undefined;
+  readonly connectorTools?: ReadonlyArray<string> | undefined;
+  readonly timeoutMs?: number | undefined;
 }
 
 /** Runs one request and decodes the reply as its `outputSchema`. */
@@ -165,11 +168,26 @@ export function fromRunner(name: string, run: Runner): ProviderTextGeneration {
       return { tier: generated.tier };
     });
 
+  const generateDailyBrief: NonNullable<ProviderTextGeneration["generateDailyBrief"]> = Effect.fn(
+    `${name}.generateDailyBrief`,
+  )(function* (input) {
+    const { cwd, connectorTools, timeoutMs, modelSelection, ...promptInput } = input;
+    return yield* run({
+      operation: "generateDailyBrief",
+      cwd,
+      modelSelection,
+      connectorTools,
+      timeoutMs,
+      ...buildDailyBriefPrompt(promptInput),
+    });
+  });
+
   return {
     generateCommitMessage,
     generatePrContent,
     generateBranchName,
     generateThreadTitle,
     classifyTurnComplexity,
+    generateDailyBrief,
   } satisfies ProviderTextGeneration;
 }

@@ -361,6 +361,50 @@ it.layer(layerClaudeTextGenerationTest)("ClaudeTextGeneration", (it) => {
     ),
   );
 
+  it.effect("writes the daily brief with read-only connector tools instead of no MCP", () =>
+    withFakeClaudeEnv(
+      {
+        output: JSON.stringify({
+          structured_output: {
+            tagline: "Un día tranquilo.",
+            focus: null,
+            todos: [],
+            updates: [],
+            events: [],
+            unavailableSources: ["calendar"],
+          },
+        }),
+        argsMustContain: "mcp__claude_ai_Slack__slack_read_thread",
+        argsMustNotContain: "--strict-mcp-config",
+        stdinMustContain: "DEP-453",
+      },
+      (textGeneration) =>
+        Effect.gen(function* () {
+          const brief = yield* textGeneration.generateDailyBrief!({
+            cwd: process.cwd(),
+            today: "Wednesday 14 October 2026",
+            since: "2026-10-13",
+            timeZone: "America/Bogota",
+            language: "es",
+            userName: "Jorge Borja",
+            userEmail: null,
+            instructions: "",
+            jira: "- DEP-453 [In Progress] Dashboard por evento",
+            pullRequests: "",
+            connectorTools: ["mcp__claude_ai_Slack__slack_read_thread"],
+            timeoutMs: 60_000,
+            modelSelection: {
+              instanceId: ProviderInstanceId.make("claudeAgent"),
+              model: SYNTHETIC_CLAUDE_STANDARD_MODEL,
+            },
+          });
+
+          expect(brief.tagline).toBe("Un día tranquilo.");
+          expect(brief.unavailableSources).toEqual(["calendar"]);
+        }),
+    ),
+  );
+
   it.effect("runs Claude text generation with the configured CLAUDE_CONFIG_DIR", () =>
     Effect.gen(function* () {
       const path = yield* Path.Path;

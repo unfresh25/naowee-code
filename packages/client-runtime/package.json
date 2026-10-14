@@ -211,6 +211,10 @@
       "types": "./src/state/jira.ts",
       "default": "./src/state/jira.ts"
     },
+    "./state/brief": {
+      "types": "./src/state/brief.ts",
+      "default": "./src/state/brief.ts"
+    },
     "./state/project-grouping": {
       "types": "./src/state/projectGrouping.ts",
       "default": "./src/state/projectGrouping.ts"

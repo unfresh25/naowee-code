@@ -1,4 +1,3 @@
-import { scopeProjectRef } from "@t3tools/client-runtime/environment";
 import type {
   EnvironmentId,
   JiraIssueChange,
@@ -6,7 +5,6 @@ import type {
   JiraSiteId,
   JiraUser,
 } from "@t3tools/contracts";
-import * as Schema from "effect/Schema";
 import {
   ArrowUpRightIcon,
   ChevronDownIcon,
@@ -16,11 +14,6 @@ import {
 } from "lucide-react";
 import { useMemo, useState, type ReactNode } from "react";
 
-import { useComposerDraftStore } from "~/composerDraftStore";
-import { useNewThreadHandler } from "~/hooks/useHandleNewThread";
-import { useLocalStorage } from "~/hooks/useLocalStorage";
-import { cn } from "~/lib/utils";
-import { useProjects } from "~/state/entities";
 import { jiraEnvironment } from "~/state/jira";
 import { useDebouncedValue } from "~/state/queries";
 import { useEnvironmentQuery } from "~/state/query";
@@ -28,6 +21,7 @@ import { useAtomCommand } from "~/state/use-atom-command";
 import { formatRelativeTimeLabel } from "~/timestampFormat";
 
 import ChatMarkdown from "../ChatMarkdown";
+import { StartThreadMenu } from "../StartThreadMenu";
 import { Button } from "../ui/button";
 import {
   Combobox,
@@ -37,19 +31,10 @@ import {
   ComboboxSearchInput,
   ComboboxTrigger,
 } from "../ui/combobox";
-import {
-  Menu,
-  MenuGroupLabel,
-  MenuItem,
-  MenuPopup,
-  MenuRadioGroup,
-  MenuRadioItem,
-  MenuTrigger,
-} from "../ui/menu";
+import { Menu, MenuItem, MenuPopup, MenuRadioGroup, MenuRadioItem, MenuTrigger } from "../ui/menu";
 import { Skeleton } from "../ui/skeleton";
 import { Spinner } from "../ui/spinner";
 import { Textarea } from "../ui/textarea";
-import { toastManager } from "../ui/toast";
 import { jiraIssueThreadPrompt } from "./jiraIssues.logic";
 import {
   JiraAvatar,
@@ -57,10 +42,6 @@ import {
   JiraPriorityGlyph,
   JiraStatusGlyph,
 } from "./jiraPresentation";
-
-const ThreadProjectChoices = Schema.Record(Schema.String, Schema.String);
-const THREAD_PROJECT_STORAGE_KEY = "naowee:jira:thread-projects-v1";
-const EMPTY_CHOICES: Readonly<Record<string, string>> = {};
 
 export function JiraIssueDetail({
   environmentId,
@@ -579,69 +560,21 @@ function CommentComposer({
 }
 
 function StartThreadButton({ detail }: { detail: JiraIssueDetailData }) {
-  const projects = useProjects();
-  const newThread = useNewThreadHandler();
-  const [choices, setChoices] = useLocalStorage(
-    THREAD_PROJECT_STORAGE_KEY,
-    EMPTY_CHOICES,
-    ThreadProjectChoices,
-  );
-  const [starting, setStarting] = useState(false);
-  const remembered = choices[detail.project.key] ?? null;
-  const ordered = useMemo(
-    () =>
-      projects.toSorted((left, right) => {
-        const leftKey = `${left.environmentId}:${left.id}`;
-        const rightKey = `${right.environmentId}:${right.id}`;
-        if (leftKey === remembered) return -1;
-        if (rightKey === remembered) return 1;
-        return Date.parse(right.updatedAt) - Date.parse(left.updatedAt);
-      }),
-    [projects, remembered],
-  );
-
-  const start = async (project: (typeof projects)[number]) => {
-    setStarting(true);
-    try {
-      const key = `${project.environmentId}:${project.id}`;
-      setChoices((current) => ({ ...current, [detail.project.key]: key }));
-      const session = await newThread(scopeProjectRef(project.environmentId, project.id)).catch(
-        () => null,
-      );
-      if (session === null) {
-        toastManager.add({ type: "error", title: "Could not start a thread" });
-        return;
-      }
-      useComposerDraftStore.getState().setPrompt(session.draftId, jiraIssueThreadPrompt(detail));
-    } finally {
-      setStarting(false);
-    }
-  };
-
   return (
-    <Menu>
-      <MenuTrigger
-        disabled={starting || ordered.length === 0}
-        render={<Button size="xs" variant="outline" />}
-      >
-        {starting ? <Spinner aria-hidden className="size-3" /> : <MessageSquarePlusIcon />}
-        Start thread
-        <ChevronDownIcon aria-hidden className="size-3 text-muted-foreground/70" />
-      </MenuTrigger>
-      <MenuPopup align="end" side="bottom" className="max-h-80">
-        <MenuGroupLabel>Work on {detail.key} in</MenuGroupLabel>
-        {ordered.map((project, index) => (
-          <MenuItem
-            key={`${project.environmentId}:${project.id}`}
-            onClick={() => void start(project)}
-          >
-            <span className={cn("truncate", index === 0 && remembered !== null && "font-medium")}>
-              {project.title}
-            </span>
-          </MenuItem>
-        ))}
-      </MenuPopup>
-    </Menu>
+    <StartThreadMenu
+      heading={`Work on ${detail.key} in`}
+      rememberKey={`jira:${detail.project.key}`}
+      buildPrompt={() => jiraIssueThreadPrompt(detail)}
+      render={<Button size="xs" variant="outline" />}
+    >
+      {(starting) => (
+        <>
+          {starting ? <Spinner aria-hidden className="size-3" /> : <MessageSquarePlusIcon />}
+          Start thread
+          <ChevronDownIcon aria-hidden className="size-3 text-muted-foreground/70" />
+        </>
+      )}
+    </StartThreadMenu>
   );
 }
 

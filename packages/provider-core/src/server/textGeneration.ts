@@ -1,6 +1,7 @@
 import type {
   BranchNamingOptions,
   ChatAttachment,
+  DailyBriefContent,
   ModelSelection,
   TextGenerationError,
 } from "@t3tools/contracts";
@@ -8,6 +9,7 @@ import type { ModelRoutingTier } from "@t3tools/contracts/settings";
 import type * as Effect from "effect/Effect";
 
 import type { TextGenerationPolicy } from "./textGenerationPolicy.ts";
+import type { DailyBriefPromptInput } from "./textGenerationPrompts.ts";
 
 export interface CommitMessageGenerationInput {
   cwd: string;
@@ -88,6 +90,13 @@ export interface TurnComplexityClassificationResult {
   tier: ModelRoutingTier;
 }
 
+export interface DailyBriefGenerationInput extends DailyBriefPromptInput {
+  cwd: string;
+  connectorTools: ReadonlyArray<string>;
+  timeoutMs: number;
+  modelSelection: ModelSelection;
+}
+
 /** Commit, change request, branch, and title generation backed by one provider instance. */
 export interface ProviderTextGeneration {
   /**
@@ -119,4 +128,8 @@ export interface ProviderTextGeneration {
   readonly classifyTurnComplexity?: (
     input: TurnComplexityClassificationInput,
   ) => Effect.Effect<TurnComplexityClassificationResult, TextGenerationError>;
+
+  readonly generateDailyBrief?: (
+    input: DailyBriefGenerationInput,
+  ) => Effect.Effect<DailyBriefContent, TextGenerationError>;
 }

@@ -1,4 +1,4 @@
-import { ArrowLeftIcon, ChartNoAxesColumnIcon, SettingsIcon } from "lucide-react";
+import { ArrowLeftIcon, ChartNoAxesColumnIcon, SettingsIcon, SunriseIcon } from "lucide-react";
 import type { ReactNode } from "react";
 import { memo, useCallback } from "react";
 import { Link, useLocation, useNavigate } from "@tanstack/react-router";
@@ -184,6 +184,10 @@ export const SidebarUtilityMenu = memo(function SidebarUtilityMenu() {
     closeMobileSidebar();
     void navigate({ to: "/settings" });
   }, [closeMobileSidebar, navigate]);
+  const handleBriefClick = useCallback(() => {
+    closeMobileSidebar();
+    void navigate({ to: "/brief" });
+  }, [closeMobileSidebar, navigate]);
   const handleJiraClick = useCallback(() => {
     closeMobileSidebar();
     void navigate({ to: "/jira" });
@@ -224,6 +228,7 @@ export const SidebarUtilityMenu = memo(function SidebarUtilityMenu() {
               onClick={handlePullRequestsClick}
             />
           ) : null}
+          <SidebarUtilityItem icon={<SunriseIcon />} label="Today" onClick={handleBriefClick} />
           <SidebarUtilityItem
             icon={<JiraLogoIcon className="size-3.5" />}
             label="Jira"

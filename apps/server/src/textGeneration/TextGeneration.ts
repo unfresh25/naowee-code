@@ -35,7 +35,8 @@ type TextGenerationOp =
   | "generatePrContent"
   | "generateBranchName"
   | "generateThreadTitle"
-  | "classifyTurnComplexity";
+  | "classifyTurnComplexity"
+  | "generateDailyBrief";
 
 const resolveInstance = (
   registry: ProviderInstanceRegistry.ProviderInstanceRegistry["Service"],
@@ -97,6 +98,19 @@ export const make = Effect.gen(function* () {
                 new TextGenerationError({
                   operation: "classifyTurnComplexity",
                   detail: "This provider does not classify turn complexity.",
+                }),
+              ),
+        ),
+      ),
+    generateDailyBrief: (input) =>
+      resolveInstance(registry, "generateDailyBrief", input.modelSelection.instanceId).pipe(
+        Effect.flatMap((textGeneration) =>
+          textGeneration.generateDailyBrief
+            ? textGeneration.generateDailyBrief(input)
+            : Effect.fail(
+                new TextGenerationError({
+                  operation: "generateDailyBrief",
+                  detail: "This provider cannot write the daily brief.",
                 }),
               ),
         ),

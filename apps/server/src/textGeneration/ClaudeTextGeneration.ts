@@ -112,6 +112,8 @@ export const makeClaudeTextGeneration = Effect.fn("makeClaudeTextGeneration")(fu
     prompt,
     outputSchema: outputSchemaJson,
     modelSelection,
+    connectorTools,
+    timeoutMs,
   }: TextGenerationOperations.Request<S>): Effect.fn.Return<
     S["Type"],
     TextGenerationError,
@@ -192,7 +194,9 @@ export const makeClaudeTextGeneration = Effect.fn("makeClaudeTextGeneration")(fu
           "--tools",
           "",
           "--disable-slash-commands",
-          "--strict-mcp-config",
+          ...(connectorTools && connectorTools.length > 0
+            ? ["--allowedTools", connectorTools.join(",")]
+            : ["--strict-mcp-config"]),
           "--permission-mode",
           "dontAsk",
         ],
@@ -246,7 +250,7 @@ export const makeClaudeTextGeneration = Effect.fn("makeClaudeTextGeneration")(fu
 
     const rawStdout = yield* runClaudeCommand().pipe(
       Effect.scoped,
-      Effect.timeoutOption(CLAUDE_TIMEOUT_MS),
+      Effect.timeoutOption(timeoutMs ?? CLAUDE_TIMEOUT_MS),
       Effect.flatMap(
         Option.match({
           onNone: () =>

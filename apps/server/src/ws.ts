@@ -178,6 +178,7 @@ import * as ServerRuntimeStartup from "./serverRuntimeStartup.ts";
 import * as ServerSettings from "./serverSettings.ts";
 import * as TurnComplexityClassifier from "./textGeneration/TurnComplexityClassifier.ts";
 import * as JiraService from "./jira/JiraService.ts";
+import * as DailyBriefService from "./brief/DailyBriefService.ts";
 import * as TerminalManager from "./terminal/Manager.ts";
 import { withTerminalOutputWindow } from "./terminal/OutputProtocol.ts";
 import * as PreviewAutomationBroker from "./mcp/PreviewAutomationBroker.ts";
@@ -1287,6 +1288,7 @@ const layerWsRpc = (
       const serverSettings = yield* ServerSettings.ServerSettingsService;
       const turnComplexityClassifier = yield* TurnComplexityClassifier.TurnComplexityClassifier;
       const jira = yield* JiraService.JiraService;
+      const dailyBrief = yield* DailyBriefService.DailyBriefService;
       const startup = yield* ServerRuntimeStartup.ServerRuntimeStartup;
       const workspaceEntries = yield* WorkspaceEntries.WorkspaceEntries;
       const workspaceFileSystem = yield* WorkspaceFileSystem.WorkspaceFileSystem;
@@ -2467,6 +2469,9 @@ const layerWsRpc = (
                 Effect.forkScoped,
               ),
           ),
+        [WS_METHODS.briefStatus]: () => dailyBrief.status,
+        [WS_METHODS.briefGenerate]: () => dailyBrief.generate,
+        [WS_METHODS.briefArtwork]: (input) => dailyBrief.artwork(input.date),
         [WS_METHODS.jiraSites]: () => jira.sites,
         [WS_METHODS.jiraListIssues]: (input) => jira.listIssues(input),
         [WS_METHODS.jiraIssue]: (input) => jira.issue(input),
