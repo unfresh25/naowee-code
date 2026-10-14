@@ -8,7 +8,7 @@ import { useLocalStorage } from "~/hooks/useLocalStorage";
 import { cn } from "~/lib/utils";
 import { useProjects } from "~/state/entities";
 
-import { Menu, MenuGroupLabel, MenuItem, MenuPopup, MenuTrigger } from "./ui/menu";
+import { Menu, MenuGroup, MenuGroupLabel, MenuItem, MenuPopup, MenuTrigger } from "./ui/menu";
 import { toastManager } from "./ui/toast";
 
 const ThreadProjectChoices = Schema.Record(Schema.String, Schema.String);
@@ -76,17 +76,19 @@ export function StartThreadMenu({
         {children(starting)}
       </MenuTrigger>
       <MenuPopup align={align} side="bottom" className="max-h-80">
-        <MenuGroupLabel>{heading}</MenuGroupLabel>
-        {ordered.map((project, index) => (
-          <MenuItem
-            key={`${project.environmentId}:${project.id}`}
-            onClick={() => void start(project)}
-          >
-            <span className={cn("truncate", index === 0 && remembered !== null && "font-medium")}>
-              {project.title}
-            </span>
-          </MenuItem>
-        ))}
+        <MenuGroup>
+          <MenuGroupLabel>{heading}</MenuGroupLabel>
+          {ordered.map((project, index) => (
+            <MenuItem
+              key={`${project.environmentId}:${project.id}`}
+              onClick={() => void start(project)}
+            >
+              <span className={cn("truncate", index === 0 && remembered !== null && "font-medium")}>
+                {project.title}
+              </span>
+            </MenuItem>
+          ))}
+        </MenuGroup>
       </MenuPopup>
     </Menu>
   );
